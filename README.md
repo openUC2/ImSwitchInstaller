@@ -1,18 +1,15 @@
-# Bell Jar
+# ImSwitch Installer
 
 ![Licence](https://img.shields.io/github/license/Ileriayo/markdown-badges?style=for-the-badge) ![Electron.js](https://img.shields.io/badge/Electron-191970?style=for-the-badge&logo=Electron&logoColor=white) ![Windows](https://img.shields.io/badge/Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white) ![Mac OS](https://img.shields.io/badge/mac%20os-000000?style=for-the-badge&logo=macos&logoColor=F0F0F0) ![Linux](https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black)
 
 # Introduction
-
-Bell Jar is a tool for neurohistology analysis of the mouse brain. It is still under active development.
+*TBA*
 
 # Compatability
-
-Bell Jar's goal is be built on any platform, as such we provide release binaries for all platforms we can test. If you do not see your OS then please build from source using the provided instructions.
+*TBA*
 
 # Usage
-
-See the belljar_guide.pdf included in the repository for a detailed set of instructions on how to run the program with our sample dataset. It also includes a guide to each individual tool.
+*TBA*
 
 # Requirements
 

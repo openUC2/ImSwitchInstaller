@@ -1,5 +1,5 @@
 var ipc = require("electron").ipcRenderer;
-var run = document.getElementById("run");
+var startImSwitch = document.getElementById("startImSwitch");
 var indir = document.getElementById("indir");
 var outdir = document.getElementById("outdir");
 var loadbar = document.getElementById("loadbar");
@@ -13,47 +13,24 @@ var alignmentMethod = "True";
 var useLegacy = "False";
 var methods = document.querySelector("#methods");
 
-whole.addEventListener("click", function () {
-	methods.textContent = "Both Hemispheres";
-	alignmentMethod = "True";
-	console.log(alignmentMethod);
-});
 
-half.addEventListener("click", function () {
-	methods.textContent = "Single Hemisphere";
-	alignmentMethod = "False";
-	console.log(alignmentMethod);
-});
 
-run.addEventListener("click", function () {
-	if (indir && outdir && indir.value && outdir.value) {
-		var a = spacing.value;
-		// use try catch to check if a is a number
-		try {
-			a = Number(a);
-		} catch (err) {
-			console.log(err);
-			alert("Spacing must be a integer!");
-			return;
-		}
-
-		if (a % 1 != 0) {
-			a = Math.round(a);
-		}
-
+startImSwitch.addEventListener("click", function () {
+		/*
 		if (legacy.checked) {
 			useLegacy = "True";
 		} else {
 			useLegacy = "False";
 		}
-		run.classList.add("disabled");
+		*/
+		startImSwitch.classList.add("disabled");
 		back.classList.remove("btn-warning");
 		back.classList.add("btn-danger");
 		back.innerHTML = "Cancel";
-		run.innerHTML = "<i class='fas fa-spinner fa-spin'></i>";
+		startImSwitch.innerHTML = "<i class='fas fa-spinner fa-spin'></i>";
 		loadmessage.innerHTML = "Intializing...";
-		ipc.send("runAlign", [indir.value, outdir.value, alignmentMethod, a, useLegacy]);
-	}
+		ipc.send("startImSwitch");
+	
 });
 
 back.addEventListener("click", function (event) {
@@ -63,28 +40,28 @@ back.addEventListener("click", function (event) {
 		back.classList.add("btn-warning");
 		back.classList.remove("btn-danger");
 		back.innerHTML = "Back";
-		run.innerHTML = "Run";
-		run.classList.remove("disabled");
+		startImSwitch.innerHTML = "startImSwitch";
+		startImSwitch.classList.remove("disabled");
 		loadmessage.innerHTML = "";
 		loadbar.style.width = "0";
 	}
 });
 
 ipc.on("alignResult", function (event, response) {
-	run.innerHTML = "Run";
-	run.classList.remove("disabled");
+	startImSwitch.innerHTML = "startImSwitch";
+	startImSwitch.classList.remove("disabled");
 	back.classList.add("btn-warning");
 	back.classList.remove("btn-danger");
 	back.innerHTML = "Back";
-	run.innerHTML = "Run";
-	run.classList.remove("disabled");
+	startImSwitch.innerHTML = "startImSwitch";
+	startImSwitch.classList.remove("disabled");
 	loadmessage.innerHTML = "";
 	loadbar.style.width = "0";
 });
 
 ipc.once("alignError", function (event, response) {
-	run.innerHTML = "Run";
-	run.classList.remove("disabled");
+	startImSwitch.innerHTML = "startImSwitch";
+	startImSwitch.classList.remove("disabled");
 });
 
 ipc.on("updateLoad", function (event, response) {
@@ -92,6 +69,7 @@ ipc.on("updateLoad", function (event, response) {
 	loadmessage.innerHTML = response[1];
 });
 
+/*
 indir.addEventListener("click", function () {
 	ipc.once("returnPath", function (event, response) {
 		if (response[1] == "indir") {
@@ -109,3 +87,4 @@ outdir.addEventListener("click", function () {
 	});
 	ipc.send("openDialog", "outdir");
 });
+*/

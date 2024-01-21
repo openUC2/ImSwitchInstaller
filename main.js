@@ -8,6 +8,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+const os = require('os');
 const { app, BrowserWindow, ipcMain, dialog, shell } = require("electron");
 const { promisify } = require("util");
 const { PythonShell } = require("python-shell");
@@ -42,7 +43,7 @@ console.log = function () {
     }
 };
 // Path variables for easy management of execution
-const homeDir = path.join(app.getPath("home"), ".belljar");
+const homeDir = path.join(app.getPath("home"), "ImSwitch");
 // Mod is the proper path to the python/pip binary
 var mod = process.platform === "win32" ? "python/" : "python/bin/";
 var envMod = process.platform === "win32" ? "Scripts/" : "bin/";
@@ -55,11 +56,26 @@ var pyCommand = process.platform === "win32" ? "python.exe" : "./python3";
 // Path to our python files
 const pyScriptsPath = path.join(appDir, "/py");
 const CURRENT_VERSION_TAG = getVersion();
-const GITHUB_API_RELEASES = "https://api.github.com/repos/asoronow/belljar/releases/latest";
+const GITHUB_API_RELEASES = "https://api.github.com/repos/openuc2/imswitch/releases/latest";
+
+
+const serverFetchTimedOut = (url, options = {}, time = 1000) => {
+    return new Promise((resolve, reject) => {
+        fetch(url, options)
+            .then(resolve)
+            .catch(reject);
+
+        if (time) {
+            const e = new Error('Server Timeout');
+            setTimeout(reject, time, e);
+        }
+    });
+};
+
 function checkForUpdates() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const response = yield serverFetch(GITHUB_API_RELEASES);
+            const response = yield serverFetchTimedOut(GITHUB_API_RELEASES);
             if (!response.ok) {
                 throw new Error(`GitHub API response status: ${response.status}`);
             }
@@ -102,11 +118,12 @@ function move(o, t) {
     });
 }
 function createLogFile(message) {
-    const logPath = path.join(homeDir, "belljar.log");
+    const logPath = path.join(homeDir, "imswitch.log");
     fs.appendFileSync(logPath, message);
 }
 // Get files asynchonously
 function downloadFile(url, target, win) {
+    console.log("Downloading: "+url)
     return new Promise((resolve, reject) => {
         const file = fs.createWriteStream(target, { highWaterMark: 64 * 1024 });
         // get the file, update the user loading screen with text on progress
@@ -119,6 +136,9 @@ function downloadFile(url, target, win) {
                         .pop()}... ${percentage.toFixed(0)}%`,
                     timestamp: Date.now(),
                 });
+                console.log(`Downloading ${target
+                    .split("/")
+                    .pop()}... ${percentage.toFixed(0)}%`)
             }
         };
         const dummy = new stream.PassThrough();
@@ -159,6 +179,44 @@ function getVersion() {
     const packageJson = require(path.join(appDir, "package.json"));
     return packageJson.version;
 }
+
+//    const osxURL = "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
+function setupMamba(win) {
+    return new Promise((resolve, reject) => {
+        const miniforgeScriptName = `Miniforge3-${os.platform()}-${os.arch()}.sh`;
+        const miniforgeURL = `https://github.com/conda-forge/miniforge/releases/latest/download/${miniforgeScriptName}`;
+
+        if (!fs.existsSync(path.join(homeDir, 'miniforge'))) {
+            win.webContents.send('updateStatus', 'Setting up Mamba via Miniforge...');
+            downloadFile(miniforgeURL, path.join(homeDir, miniforgeScriptName), win)
+                .then(() => {
+                    win.webContents.send('updateStatus', 'Downloaded Miniforge script...');
+                    const scriptPath = path.join(homeDir, miniforgeScriptName);
+                    exec(`bash ${scriptPath} -b -p ${homeDir}/miniforge`, (error, stdout, stderr) => {
+                        if (error) {
+                            win.webContents.send('updateStatus', 'Error in installing Miniforge.');
+                            console.error(`exec error: ${error}`);
+                            return reject(error);
+                        }
+                        win.webContents.send('updateStatus', 'Miniforge installed successfully.');
+                        resolve(true);
+                    });
+                })
+                .catch((err) => {
+                    console.log(err);
+                    reject(err);
+                });
+        } else {
+            // Check if Miniforge is already set up
+            if (fs.existsSync(path.join(homeDir, 'miniforge', 'bin', 'mamba'))) {
+                resolve(true);
+            } else {
+                resolve(false);
+            }
+        }
+    });
+}
+
 function setupPython(win) {
     const bucketParentPath = "https://storage.googleapis.com/belljar_updates";
     const linuxURL = `${bucketParentPath}/cpython-3.10.13+20230826-x86_64-unknown-linux-gnu-install_only.tar.gz`;
@@ -427,6 +485,59 @@ function downloadResources(win, fresh) {
         }
     });
 }
+
+
+const { exec } = require('child_process');
+const path = require('path');
+const fs = require('fs');
+
+function setupMamba(win) {
+    const envName = "imswitch";
+    const mambaPath = path.join(homeDir, 'miniforge', 'bin', 'mamba'); // Adjust path as needed
+
+    if (!fs.existsSync(path.join(mambaPath, envName))) {
+        win.webContents.send("updateStatus", "Preparing to download required files...");
+        downloadResources(win, true)
+            .then(() => {
+                win.webContents.send("updateStatus", "Creating Mamba environment...");
+                return runCommand(`${mambaPath} create -n ${envName} -y`);
+            })
+            .then(() => {
+                win.webContents.send("updateStatus", "Installing dependencies with Mamba...");
+                return runCommand(`${mambaPath} install -n ${envName} pyqt`);
+            })
+            .then(() => {
+                win.webContents.send("updateStatus", "Installing additional packages with pip...");
+                return runCommand(`pip install -e git+https://github.com/openUC2/UC2-REST`);
+            })
+            .then(() => {
+                return runCommand(`pip install -e git+https://github.com/openUC2/imswitch`);
+            })
+            .then(() => {
+                win.webContents.send("updateStatus", "Setup complete!");
+                win.loadFile("pages/index.html");
+            })
+            .catch((error) => {
+                console.log("An error occurred during setup:", error);
+                win.webContents.send("updateStatus", "An error occurred during setup.");
+            });
+    }
+}
+
+function runCommand(command) {
+    return new Promise((resolve, reject) => {
+        exec(command, (error, stdout, stderr) => {
+            if (error) {
+                console.error(`exec error: ${error}`);
+                return reject(error);
+            }
+            console.log(stdout);
+            resolve(stdout);
+        });
+    });
+}
+
+
 // Creates the venv and installs the dependencies
 function setupEnvironment(win) {
     if (!fs.existsSync(envPath)) {
@@ -478,6 +589,7 @@ function setupEnvironment(win) {
     function installDeps() {
         return __awaiter(this, void 0, void 0, function* () {
             let reqs = path.join(appDir, "py/requirements.txt");
+            //const { stdout, stderr } = yield exec(`${pyCommand} -m pip install -r "${reqs}" --use-pep517`, { cwd: envPythonPath });
             const { stdout, stderr } = yield exec(`${pyCommand} -m pip install -r "${reqs}" --use-pep517`, { cwd: envPythonPath });
             return { stdout, stderr };
         });
@@ -576,12 +688,14 @@ app.on("ready", () => {
         // Make a directory to house enviornment, settings, etc.yarn
         checkLocalDir();
         // Setup python for running the pipeline
-        setupPython(win)
+        //setupPython(win)
+        setupMamba(win)
             .then((installed) => {
             // If we just installed python, we need to continue the complete
             // setup of the enviornment
             if (installed) {
-                setupEnvironment(win);
+                //setupEnvironment(win);
+                setupMamba(win);
             }
             else {
                 // Otherwise, we can just update the dependencies
@@ -651,115 +765,10 @@ ipcMain.on("openFileDialog", function (event, data) {
         console.log(err);
     });
 });
-// Max Projection
-ipcMain.on("runMax", function (event, data) {
-    let options = {
-        mode: "text",
-        pythonPath: path.join(envPythonPath, pyCommand),
-        scriptPath: pyScriptsPath,
-        args: [
-            `-o ${data[1]}`,
-            `-i ${data[0]}`,
-            `-d ${data[2]}`,
-            `-t ${data[3]}`,
-            "-g False",
-        ],
-    };
-    let pyshell = new PythonShell("max.py", options);
-    var total = 0;
-    var current = 0;
-    pyshell.on("message", (message) => {
-        if (total === 0) {
-            total = Number(message);
-        }
-        else if (message == "Done!") {
-            pyshell.end((err, code, signal) => {
-                if (err)
-                    throw err;
-                console.log("The exit code was: " + code);
-                console.log("The exit signal was: " + signal);
-                event.sender.send("maxResult");
-                ipcMain.removeAllListeners("killMax");
-            });
-        }
-        else {
-            current++;
-            console.log(message);
-            event.sender.send("updateLoad", [
-                Math.round((current / total) * 100),
-                message,
-            ]);
-        }
-    });
-    ipcMain.once("killMax", function (event, data) {
-        pyshell.kill();
-    });
-});
-// Adjust
-ipcMain.on("runAdjust", function (event, data) {
-    var structPath = path.join(appDir, "csv/structure_map.pkl");
-    let options = {
-        mode: "text",
-        pythonPath: path.join(envPythonPath, pyCommand),
-        scriptPath: pyScriptsPath,
-        args: [`-i ${data[0]}`, `-s ${structPath}`, `-a ${data[1]}`],
-    };
-    let pyshell = new PythonShell("adjust.py", options);
-    var total = 0;
-    var current = 0;
-    pyshell.on("stderr", function (stderr) {
-        console.log(stderr);
-    });
-    pyshell.on("message", (message) => {
-        if (total === 0) {
-            total = Number(message);
-        }
-        else if (message == "Done!") {
-            pyshell.end((err, code, signal) => {
-                if (err)
-                    throw err;
-                console.log("The exit code was: " + code);
-                console.log("The exit signal was: " + signal);
-                event.sender.send("adjustResult");
-                ipcMain.removeAllListeners("killAdjust");
-            });
-        }
-        else {
-            current++;
-            console.log(message);
-            event.sender.send("updateLoad", [
-                Math.round((current / total) * 100),
-                message,
-            ]);
-        }
-    });
-    ipcMain.once("killAdjust", function (event, data) {
-        pyshell.kill();
-    });
-});
 // Alignment
-ipcMain.on("runAlign", function (event, data) {
-    const modelPath = path.join(homeDir, "models/predictor.pt");
-    const embedPath = path.join(homeDir, "embeddings/embeddings.pkl");
-    const nrrdPath = path.join(homeDir, "nrrd");
-    const mapPath = path.join(appDir, "csv/structure_map.pkl");
-    let options = {
-        mode: "text",
-        pythonPath: path.join(envPythonPath, pyCommand),
-        scriptPath: pyScriptsPath,
-        args: [
-            `-o ${data[1]}`,
-            `-i ${data[0]}`,
-            `-w ${data[2]}`,
-            `-a ${data[3]}`,
-            `-m ${modelPath}`,
-            `-e ${embedPath}`,
-            `-n ${nrrdPath}`,
-            `-c ${mapPath}`,
-            `-l ${data[4]}`,
-        ],
-    };
-    let pyshell = new PythonShell("map.py", options);
+ipcMain.on("startImSwitch", function () {
+    console.log("starting imswitch");
+    let pyshell = new PythonShell("/Users/bene/mambaforge/envs/imswitch/bin/python -m imswitch");
     var total = 0;
     var current = 0;
     pyshell.on("stderr", function (stderr) {
@@ -789,235 +798,6 @@ ipcMain.on("runAlign", function (event, data) {
         }
     });
     ipcMain.once("killAlign", function (event, data) {
-        pyshell.kill();
-    });
-});
-// Intensity by Region
-ipcMain.on("runIntensity", function (event, data) {
-    const structPath = path.join(appDir, "csv/structure_map.pkl");
-    let options = {
-        mode: "text",
-        pythonPath: path.join(envPythonPath, pyCommand),
-        scriptPath: pyScriptsPath,
-        args: [
-            `-i ${data[0]}`,
-            `-o ${data[1]}`,
-            `-a ${data[2]}`,
-            `-w ${data[3]}`,
-            `-m ${structPath}`,
-        ],
-    };
-    let pyshell = new PythonShell("region.py", options);
-    var total = 0;
-    var current = 0;
-    pyshell.on("stderr", function (stderr) {
-        console.log(stderr);
-    });
-    pyshell.on("message", (message) => {
-        console.log(message);
-        if (total === 0) {
-            total = Number(message);
-        }
-        else if (message == "Done!") {
-            pyshell.end((err, code, signal) => {
-                if (err)
-                    throw err;
-                console.log("The exit code was: " + code);
-                console.log("The exit signal was: " + signal);
-                event.sender.send("intensityResult");
-                ipcMain.removeAllListeners("killIntensity");
-            });
-        }
-        else {
-            current++;
-            event.sender.send("updateLoad", [
-                Math.round((current / total) * 100),
-                message,
-            ]);
-        }
-    });
-    ipcMain.once("killIntensity", function (event, data) {
-        pyshell.kill();
-    });
-});
-// Counting
-ipcMain.on("runCount", function (event, data) {
-    var structPath = path.join(appDir, "csv/structure_map.pkl");
-    let custom_args = [
-        `-p ${data[0]}`,
-        `-a ${data[1]}`,
-        `-o ${data[2]}`,
-        `-m ${structPath}`,
-    ];
-    if (data[3]) {
-        custom_args.push(`--layers`);
-    }
-    let options = {
-        mode: "text",
-        pythonPath: path.join(envPythonPath, pyCommand),
-        scriptPath: pyScriptsPath,
-        args: custom_args,
-    };
-    let pyshell = new PythonShell("count.py", options);
-    var total = 0;
-    var current = 0;
-    pyshell.on("stderr", function (stderr) {
-        console.log(stderr);
-    });
-    pyshell.on("message", (message) => {
-        console.log(message);
-        if (total === 0) {
-            total = Number(message);
-        }
-        else if (message == "Done!") {
-            pyshell.end((err, code, signal) => {
-                if (err)
-                    throw err;
-                console.log("The exit code was: " + code);
-                console.log("The exit signal was: " + signal);
-                event.sender.send("countResult");
-                ipcMain.removeAllListeners("killCount");
-            });
-        }
-        else {
-            current++;
-            event.sender.send("updateLoad", [
-                Math.round((current / total) * 100),
-                message,
-            ]);
-        }
-    });
-    ipcMain.once("killCount", function (event, data) {
-        pyshell.kill();
-    });
-});
-// Collate
-ipcMain.on("runCollate", function (event, data) {
-    let options = {
-        mode: "text",
-        pythonPath: path.join(envPythonPath, pyCommand),
-        scriptPath: pyScriptsPath,
-        args: [
-            String.raw `-o ${data[1]}`,
-            String.raw `-i ${data[0]}`,
-            `-r ${data[2]}`,
-            String.raw `-s ${path.join(appDir, "csv/structure_map.pkl")}`,
-            "-g False",
-        ],
-    };
-    let pyshell = new PythonShell("collate.py", options);
-    pyshell.end((err, code, signal) => {
-        if (err)
-            throw err;
-        console.log("The exit code was: " + code);
-        console.log("The exit signal was: " + signal);
-        event.sender.send("collateResult");
-    });
-    ipcMain.once("killCollate", function (event, data) {
-        pyshell.kill();
-    });
-});
-// Collate
-ipcMain.on("runSharpen", function (event, data) {
-    let custom = [
-        String.raw `-o ${data[1]}`,
-        String.raw `-i ${data[0]}`,
-        `-r ${data[2]}`,
-        `-a ${data[3]}`,
-    ];
-    if (data[4]) {
-        custom.push(`--equalize`);
-    }
-    let options = {
-        mode: "text",
-        pythonPath: path.join(envPythonPath, pyCommand),
-        scriptPath: pyScriptsPath,
-        args: custom,
-    };
-    let pyshell = new PythonShell("sharpen.py", options);
-    var total = 0;
-    var current = 0;
-    pyshell.on("message", (message) => {
-        console.log(message);
-        if (total === 0) {
-            total = Number(message);
-        }
-        else if (message == "Done!") {
-            pyshell.end((err, code, signal) => {
-                if (err)
-                    throw err;
-                console.log("The exit code was: " + code);
-                console.log("The exit signal was: " + signal);
-                event.sender.send("sharpenResult");
-                ipcMain.removeAllListeners("killSharpen");
-            });
-        }
-        else {
-            current++;
-            event.sender.send("updateLoad", [
-                Math.round((current / total) * 100),
-                message,
-            ]);
-        }
-    });
-    ipcMain.once("killSharpen", function (event, data) {
-        pyshell.kill();
-    });
-});
-// Cell Detection
-ipcMain.on("runDetection", function (event, data) {
-    // Set model path
-    var modelPath = path.join(homeDir, "models/chaosdruid.pt");
-    // Switch over to custom if necessary
-    if (data[4].length > 0) {
-        modelPath = data[4];
-    }
-    let custom_args = [
-        `-i ${data[0]}`,
-        `-o ${data[1]}`,
-        `-c ${data[2]}`,
-        `-t ${data[3]}`,
-        `-m ${modelPath}`,
-    ];
-    if (data[5]) {
-        custom_args.push(`--multichannel`);
-    }
-    let options = {
-        mode: "text",
-        pythonPath: path.join(envPythonPath, pyCommand),
-        scriptPath: pyScriptsPath,
-        args: custom_args,
-    };
-    let pyshell = new PythonShell("find_neurons.py", options);
-    var total = 0;
-    var current = 0;
-    pyshell.on("stderr", function (stderr) {
-        console.log(stderr);
-    });
-    pyshell.on("message", (message) => {
-        console.log(message);
-        if (total === 0) {
-            total = Number(message);
-        }
-        else if (message == "Done!") {
-            pyshell.end((err, code, signal) => {
-                if (err)
-                    throw err;
-                console.log("The exit code was: " + code);
-                console.log("The exit signal was: " + signal);
-                event.sender.send("detectResult");
-                ipcMain.removeAllListeners("killDetect");
-            });
-        }
-        else {
-            current++;
-            event.sender.send("updateLoad", [
-                Math.round((current / total) * 100),
-                message,
-            ]);
-        }
-    });
-    ipcMain.once("killDetect", function (event, data) {
         pyshell.kill();
     });
 });

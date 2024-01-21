@@ -40,7 +40,7 @@
     "typescript": "^4.6.3"
   },
   "build": {
-    "appId": "com.belljar.app",
-    "productName": "Bell Jar"
+    "appId": "com.imswitch.app",
+    "productName": "ImSwitch"
   }
 }

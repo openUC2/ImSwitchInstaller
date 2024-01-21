@@ -498,17 +498,14 @@ function setupMambaEnv(win) {
     const miniforgePath = path.join(homeDir, 'miniforge');
     const mambaPath = path.join(miniforgePath, 'bin', 'mamba'); 
     const pipPath = path.join(miniforgePath, 'bin', 'pip'); // Adjust for Windows if necessary
-
+    /*
+    Install UC2-REST and ImSwitch from github master
+    */
     if (!fs.existsSync(path.join(miniforgePath, 'envs', envName))) {
         win.webContents.send("updateStatus", "Creating Mamba environment...");
         runCommand(`${mambaPath}`, [`create`, `-n`, `${envName}`, '-y'], win)
         //runCommand(`${mambaPath} create -n ${envName} -y`)
-            .then(() => {/*
-                win.webContents.send("updateStatus", "Installing PyQt with Mamba...");
-                // return runCommand(`${mambaPath} install -n ${envName} pyqt`);
-                return runCommand(`${mambaPath}`, [`install`, `pyqt`, `-y`], win); // `-n`, `${envName}`, 
-            })
-            .then(() => {*/
+            .then(() => {
                 win.webContents.send("updateStatus", "Installing UC2-REST packages with pip. This may take a while...");
                 return runCommand(`${pipPath}`, [`install`, `https://github.com/openUC2/UC2-REST/archive/master.zip`], win);
             })
@@ -524,6 +521,10 @@ function setupMambaEnv(win) {
                 console.log("An error occurred during setup:", error);
                 win.webContents.send("updateStatus", "An error occurred during setup.");
             });
+    }
+    else{
+        win.webContents.send("updateStatus", "Setup complete!");
+        win.loadFile("pages/index.html");
     }
 }
 
@@ -815,7 +816,9 @@ ipcMain.on("openFileDialog", function (event, data) {
         console.log(err);
     });
 });
-// Alignment
+
+
+// Start ImSwitch
 ipcMain.on("startImSwitch", function () {
     console.log("starting imswitch");
     const miniforgePath = path.join(homeDir, 'miniforge');
@@ -824,4 +827,22 @@ ipcMain.on("startImSwitch", function () {
     if (fs.existsSync(path.join(miniforgePath))) {
         runCommand(`${pythonPath}`, [`-m`, `imswitch`], win)
     };
+});
+// Update ImSwitch
+ipcMain.on("updateImSwitch", function () {
+    console.log("updating imswitch to the latest version");
+    const miniforgePath = path.join(homeDir, 'miniforge');
+    const pipPath = path.join(miniforgePath, 'bin', 'pip'); 
+    /*
+    Install UC2-REST and ImSwitch from github master
+    */
+    if (fs.existsSync(path.join(miniforgePath))) {
+        win.webContents.send("updateStatus", "Updating ImSwitch from Source...");
+        runCommand(`${pipPath}`, [`install`, `https://github.com/openUC2/UC2-REST/archive/master.zip`], win)
+        //runCommand(`${mambaPath} create -n ${envName} -y`)
+            .then(() => {
+                win.webContents.send("updateStatus", "Installing UC2-ImSwitch packages with pip. This may take a while...");
+                return runCommand(`${pipPath}`, [`install`, `https://github.com/openUC2/ImSwitch/archive/master.zip`], win);
+            })}
+
 });

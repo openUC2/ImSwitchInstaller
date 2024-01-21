@@ -21,6 +21,9 @@ const stream = require("stream");
 const https = require("https");
 const semver = require("semver");
 const serverFetch = require("node-fetch");
+const { spawn } = require('child_process');
+
+
 var appDir = app.getAppPath();
 var win = null;
 var logWin = null;
@@ -61,12 +64,12 @@ const GITHUB_API_RELEASES = "https://api.github.com/repos/openuc2/imswitch/relea
 
 const serverFetchTimedOut = (url, options = {}, time = 1000) => {
     return new Promise((resolve, reject) => {
-        fetch(url, options)
+        serverFetch(url, options)
             .then(resolve)
             .catch(reject);
 
         if (time) {
-            const e = new Error('Server Timeout');
+            const e = new Error('Server Timeout: '+url);
             setTimeout(reject, time, e);
         }
     });
@@ -121,52 +124,57 @@ function createLogFile(message) {
     const logPath = path.join(homeDir, "imswitch.log");
     fs.appendFileSync(logPath, message);
 }
-// Get files asynchonously
 function downloadFile(url, target, win) {
     console.log("Downloading: "+url)
     return new Promise((resolve, reject) => {
         const file = fs.createWriteStream(target, { highWaterMark: 64 * 1024 });
-        // get the file, update the user loading screen with text on progress
+
         const progress = (receivedBytes, totalBytes) => {
             const percentage = (receivedBytes * 100) / totalBytes;
-            if (percentage > 0) {
-                win.webContents.send("updateStatus", {
-                    message: `Downloading ${target
-                        .split("/")
-                        .pop()}... ${percentage.toFixed(0)}%`,
-                    timestamp: Date.now(),
-                });
-                console.log(`Downloading ${target
-                    .split("/")
-                    .pop()}... ${percentage.toFixed(0)}%`)
-            }
+            win.webContents.send("updateStatus", {
+                message: `Downloading ${target.split("/").pop()}... ${percentage.toFixed(0)}%`,
+                timestamp: Date.now(),
+            });
         };
-        const dummy = new stream.PassThrough();
+
         const request = https.get(url, (response) => {
-            // create a dummy stream so we can update the user on progress
-            var receivedBytes = 0;
-            var totalBytes = parseInt(response.headers["content-length"]);
-            response.pipe(dummy);
-            let lastUpdateTimestamp = Date.now();
-            dummy.on("data", (chunk) => {
-                receivedBytes += chunk.length;
-                const currentTimestamp = Date.now();
-                if (currentTimestamp - lastUpdateTimestamp >= 1000) {
-                    // 1000 ms = 1 second
+            if (response.statusCode === 301 || response.statusCode === 302) {
+                // If redirected, recursively call this function with the new location
+                return downloadFile(response.headers.location, target, win).then(resolve).catch(reject);
+            } else if (response.statusCode === 200) {
+                var receivedBytes = 0;
+                var totalBytes = parseInt(response.headers["content-length"], 10);
+
+                response.on("data", (chunk) => {
+                    receivedBytes += chunk.length;
                     progress(receivedBytes, totalBytes);
-                    lastUpdateTimestamp = currentTimestamp;
-                }
-            });
-            // pipe the response to the file
-            response.pipe(file);
-            file.on("finish", () => {
-                file.close();
-                win.webContents.send("updateStatus", `Extracting ${target.split("/").pop()}...`);
-                resolve(true);
-            });
+                });
+
+                response.pipe(file);
+            } else {
+                reject(new Error(`Failed to download file, status code: ${response.statusCode}`));
+            }
+        });
+
+        request.on('error', (err) => {
+            console.error('Request error:', err);
+            reject(err);
+        });
+
+        file.on("finish", () => {
+            file.close();
+            win.webContents.send("updateStatus", `Downloaded ${target.split("/").pop()}`);
+            resolve(true);
+        });
+
+        file.on('error', (err) => {
+            console.error('File stream error:', err);
+            file.close();
+            reject(err);
         });
     });
 }
+
 // Delete a file safely
 function deleteFile(file) {
     return new Promise((resolve, reject) => {
@@ -188,25 +196,23 @@ function setupMamba(win) {
 
         if (!fs.existsSync(path.join(homeDir, 'miniforge'))) {
             win.webContents.send('updateStatus', 'Setting up Mamba via Miniforge...');
-            downloadFile(miniforgeURL, path.join(homeDir, miniforgeScriptName), win)
-                .then(() => {
-                    win.webContents.send('updateStatus', 'Downloaded Miniforge script...');
-                    const scriptPath = path.join(homeDir, miniforgeScriptName);
-                    exec(`bash ${scriptPath} -b -p ${homeDir}/miniforge`, (error, stdout, stderr) => {
-                        if (error) {
-                            win.webContents.send('updateStatus', 'Error in installing Miniforge.');
-                            console.error(`exec error: ${error}`);
-                            return reject(error);
-                        }
-                        win.webContents.send('updateStatus', 'Miniforge installed successfully.');
-                        resolve(true);
-                    });
-                })
-                .catch((err) => {
-                    console.log(err);
-                    reject(err);
+            downloadFile(miniforgeURL, path.join(homeDir, miniforgeScriptName), win).then(() => {
+                win.webContents.send('updateStatus', 'Installing Mamba locally in: '+homeDir);
+                const scriptPath = path.join(homeDir, miniforgeScriptName);
+                exec(`bash ${scriptPath} -b -p ${homeDir}/miniforge`, (error, stdout, stderr) => {
+                    if (error) {
+                        win.webContents.send('updateStatus', 'Error in installing Miniforge.');
+                        console.error(`exec error: ${error}`);
+                        console.error(stderr);
+                        return reject(error);
+                    }
+                    win.webContents.send('updateStatus', 'Miniforge installed successfully.');
+                    console.log(stdout);
+                    resolve(true);
                 });
-        } else {
+        });
+        }
+        else {
             // Check if Miniforge is already set up
             if (fs.existsSync(path.join(homeDir, 'miniforge', 'bin', 'mamba'))) {
                 resolve(true);
@@ -487,31 +493,28 @@ function downloadResources(win, fresh) {
 }
 
 
-const { exec } = require('child_process');
-const path = require('path');
-const fs = require('fs');
-
-function setupMamba(win) {
+function setupMambaEnv(win) {
     const envName = "imswitch";
-    const mambaPath = path.join(homeDir, 'miniforge', 'bin', 'mamba'); // Adjust path as needed
+    const miniforgePath = path.join(homeDir, 'miniforge');
+    const mambaPath = path.join(miniforgePath, 'bin', 'mamba'); 
+    const pipPath = path.join(miniforgePath, 'bin', 'pip'); // Adjust for Windows if necessary
 
-    if (!fs.existsSync(path.join(mambaPath, envName))) {
-        win.webContents.send("updateStatus", "Preparing to download required files...");
-        downloadResources(win, true)
-            .then(() => {
-                win.webContents.send("updateStatus", "Creating Mamba environment...");
-                return runCommand(`${mambaPath} create -n ${envName} -y`);
+    if (!fs.existsSync(path.join(miniforgePath, 'envs', envName))) {
+        win.webContents.send("updateStatus", "Creating Mamba environment...");
+        runCommand(`${mambaPath}`, [`create`, `-n`, `${envName}`, '-y'], win)
+        //runCommand(`${mambaPath} create -n ${envName} -y`)
+            .then(() => {/*
+                win.webContents.send("updateStatus", "Installing PyQt with Mamba...");
+                // return runCommand(`${mambaPath} install -n ${envName} pyqt`);
+                return runCommand(`${mambaPath}`, [`install`, `pyqt`, `-y`], win); // `-n`, `${envName}`, 
+            })
+            .then(() => {*/
+                win.webContents.send("updateStatus", "Installing UC2-REST packages with pip. This may take a while...");
+                return runCommand(`${pipPath}`, [`install`, `https://github.com/openUC2/UC2-REST/archive/master.zip`], win);
             })
             .then(() => {
-                win.webContents.send("updateStatus", "Installing dependencies with Mamba...");
-                return runCommand(`${mambaPath} install -n ${envName} pyqt`);
-            })
-            .then(() => {
-                win.webContents.send("updateStatus", "Installing additional packages with pip...");
-                return runCommand(`pip install -e git+https://github.com/openUC2/UC2-REST`);
-            })
-            .then(() => {
-                return runCommand(`pip install -e git+https://github.com/openUC2/imswitch`);
+                win.webContents.send("updateStatus", "Installing UC2-ImSwitch packages with pip. This may take a while...");
+                return runCommand(`${pipPath}`, [`install`, `https://github.com/openUC2/ImSwitch/archive/master.zip`], win);
             })
             .then(() => {
                 win.webContents.send("updateStatus", "Setup complete!");
@@ -524,18 +527,65 @@ function setupMamba(win) {
     }
 }
 
-function runCommand(command) {
+
+
+function runCommand(command, args, win) {
+    return new Promise((resolve, reject) => {
+        console.log("Executing: " + command + " " + args.join(" "));
+
+        // Spawn the process
+        const process = spawn(command, args);
+
+        // Handle standard output
+        process.stdout.on('data', (data) => {
+            console.log(`stdout: ${data}`);
+            win.webContents.send("commandOutput", data.toString());
+        });
+
+        // Handle standard error
+        process.stderr.on('data', (data) => {
+            console.error(`stderr: ${data}`);
+            win.webContents.send("commandError", data.toString());
+        });
+
+        // Handle error
+        process.on('error', (error) => {
+            console.error(`exec error: ${error}`);
+            reject(error);
+        });
+
+        // Handle process exit
+        process.on('close', (code) => {
+            console.log(`child process exited with code ${code}`);
+            if (code === 0) {
+                resolve();
+            } else {
+                reject(new Error(`Process exited with code ${code}`));
+            }
+        });
+    });
+}
+
+function runCommandExec(command, win) {
+    console.log("Executing: " + command);
     return new Promise((resolve, reject) => {
         exec(command, (error, stdout, stderr) => {
             if (error) {
                 console.error(`exec error: ${error}`);
+                console.log(`Error: ${error.message}`);
                 return reject(error);
             }
+            if (stderr) {
+                console.error(`stderr: ${stderr}`);
+                console.log(`Standard Error: ${stderr}`);
+            }
             console.log(stdout);
+            console.log("commandOutput"+stdout);
             resolve(stdout);
         });
     });
 }
+
 
 
 // Creates the venv and installs the dependencies
@@ -695,7 +745,7 @@ app.on("ready", () => {
             // setup of the enviornment
             if (installed) {
                 //setupEnvironment(win);
-                setupMamba(win);
+                setupMambaEnv(win);
             }
             else {
                 // Otherwise, we can just update the dependencies
@@ -768,36 +818,10 @@ ipcMain.on("openFileDialog", function (event, data) {
 // Alignment
 ipcMain.on("startImSwitch", function () {
     console.log("starting imswitch");
-    let pyshell = new PythonShell("/Users/bene/mambaforge/envs/imswitch/bin/python -m imswitch");
-    var total = 0;
-    var current = 0;
-    pyshell.on("stderr", function (stderr) {
-        console.log(stderr);
-    });
-    pyshell.on("message", (message) => {
-        console.log(message);
-        if (total === 0) {
-            total = Number(message);
-        }
-        else if (message == "Done!") {
-            pyshell.end((err, code, signal) => {
-                if (err)
-                    throw err;
-                event.sender.send("alignResult");
-                console.log("The exit code was: " + code);
-                console.log("The exit signal was: " + signal);
-                ipcMain.removeAllListeners("killAlign");
-            });
-        }
-        else {
-            current++;
-            event.sender.send("updateLoad", [
-                Math.round((current / total) * 100),
-                message,
-            ]);
-        }
-    });
-    ipcMain.once("killAlign", function (event, data) {
-        pyshell.kill();
-    });
+    const miniforgePath = path.join(homeDir, 'miniforge');
+    const pythonPath = path.join(miniforgePath, 'bin', 'python'); 
+    
+    if (fs.existsSync(path.join(miniforgePath))) {
+        runCommand(`${pythonPath}`, [`-m`, `imswitch`], win)
+    };
 });

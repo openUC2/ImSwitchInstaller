@@ -1,24 +1,25 @@
-name: Build Electron App
+name: Build and Package Electron App
 
 on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
         node-version: [16.x]
-        # Define your platforms here
-        platform: [osx64, win32, linuxarm64, linuxamd64]
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
-    - name: Use Node.js ${{ matrix.node-version }}
+    - name: Set up Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v2
       with:
         node-version: ${{ matrix.node-version }}
@@ -26,19 +27,11 @@ jobs:
     - name: Install dependencies
       run: yarn install
 
-    - name: Compile
-      run: DEBUG=electron-forge:* yarn make:${{ matrix.platform }}
-      env:
-        CI: true
-        
-    # Build for each platform
-    - name: Build Electron App for ${{ matrix.platform }}
-      run: yarn make:${{ matrix.platform }}
-      env:
-        CI: true
+    - name: Build and Package
+      run: yarn dist
 
-    # Upload artifacts
-    - uses: actions/upload-artifact@v2
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v2
       with:
-        name: electron-artifacts-${{ matrix.platform }}
-        path: out/make/**/*
+        name: ${{ runner.os }}-artifacts
+        path: dist/*

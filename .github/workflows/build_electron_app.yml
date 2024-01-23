@@ -1,0 +1,42 @@
+name: Build Electron App
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [16.x]
+        # Define your platforms here
+        platform: [darwin-x64, win32-x64, linux-arm64, linux-x64]
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v2
+      with:
+        node-version: ${{ matrix.node-version }}
+
+    - name: Install dependencies
+      run: yarn install
+
+    - name: Compile
+      run: yarn compile
+
+    # Build for each platform
+    - name: Build Electron App for ${{ matrix.platform }}
+      run: yarn make:${{ matrix.platform }}
+      env:
+        CI: true
+
+    # Upload artifacts
+    - uses: actions/upload-artifact@v2
+      with:
+        name: electron-artifacts-${{ matrix.platform }}
+        path: out/make/**/*

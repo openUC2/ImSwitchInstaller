@@ -9,8 +9,13 @@
   "private": false,
   "scripts": {
     "compile": "tsc",
-    "start": "electron .",
-    "pack": "electron-builder --dir",
+    "start": "electron-forge start",
+    "package": "electron-forge package",
+    "make:osx64": "electron-forge make --platform=darwin --arch=x64",
+    "make:win32": "electron-forge make --platform=win32 --arch=x64",
+    "make:linuxarm64": "electron-forge make --platform=linux --arch=arm64",
+    "make:linuxamd64": "electron-forge make --platform=linux --arch=x64",
+    "make:all": "yarn make:osx64 && yarn make:win32 && yarn make:linuxarm64 && yarn make:linuxamd64",
     "dist": "electron-builder"
   },
   "dependencies": {
@@ -22,6 +27,11 @@
   },
   "devDependencies": {
     "@electron-forge/cli": "^6.0.3",
+    "@electron-forge/maker-deb": "^6.0.3",
+    "@electron-forge/maker-dmg": "^6.2.1",
+    "@electron-forge/maker-rpm": "^6.0.3",
+    "@electron-forge/maker-squirrel": "^6.3.0",
+    "@electron-forge/maker-zip": "^6.0.3",
     "@typescript-eslint/eslint-plugin": "^4.29.0",
     "@typescript-eslint/parser": "^4.29.0",
     "dotenv": "^16.3.1",
@@ -33,16 +43,6 @@
   },
   "build": {
     "appId": "com.imswitch.app",
-    "productName": "ImSwitch",
-    "mac": {
-      "target": "dmg"
-    },
-    "win": {
-      "target": "nsis"
-    },
-    "linux": {
-      "target": ["AppImage", "deb"]
-    }    
-
+    "productName": "ImSwitch"
   }
 }

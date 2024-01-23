@@ -13,7 +13,7 @@ jobs:
       matrix:
         node-version: [16.x]
         # Define your platforms here
-        platform: [darwin-x64, win32-x64, linux-arm64, linux-x64]
+        platform: [osx64, win32, linuxarm64, linuxamd64]
 
     steps:
     - uses: actions/checkout@v2
@@ -27,7 +27,7 @@ jobs:
       run: yarn install
 
     - name: Compile
-      run: yarn make:all
+      run: yarn make:${{ matrix.platform }}
 
     # Build for each platform
     - name: Build Electron App for ${{ matrix.platform }}

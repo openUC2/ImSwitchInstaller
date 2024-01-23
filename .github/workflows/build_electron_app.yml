@@ -27,7 +27,7 @@ jobs:
       run: yarn install
 
     - name: Compile
-      run: yarn compile
+      run: yarn make:all
 
     # Build for each platform
     - name: Build Electron App for ${{ matrix.platform }}

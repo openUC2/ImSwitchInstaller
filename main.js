@@ -8,6 +8,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+
+var url = require('url');
+const util = require('util');
 const os = require('os');
 const { app, BrowserWindow, ipcMain, dialog, shell } = require("electron");
 const { promisify } = require("util");
@@ -124,56 +127,47 @@ function createLogFile(message) {
     const logPath = path.join(homeDir, "imswitch.log");
     fs.appendFileSync(logPath, message);
 }
-function downloadFile(url, target, win) {
-    console.log("Downloading: " + url)
+
+
+// Convert fs.unlink into a Promise-based function
+const unlinkAsync = util.promisify(fs.unlink);
+
+
+const TIMEOUT = 30000
+//https://stackoverflow.com/questions/11944932/how-to-download-a-file-with-node-js-without-using-third-party-libraries
+function downloadFile(url, dest) {
+    const uri = new URL(url)
+    if (!dest) {
+        dest = basename(uri.pathname)
+    }
+    const pkg = url.toLowerCase().startsWith('https:') ? https : http
+
     return new Promise((resolve, reject) => {
-        const file = fs.createWriteStream(target, { highWaterMark: 64 * 1024 });
-
-        const progress = (receivedBytes, totalBytes) => {
-            const percentage = (receivedBytes * 100) / totalBytes;
-            win.webContents.send("updateStatus", {
-                message: `Downloading ${target.split("/").pop()}... ${percentage.toFixed(0)}%`,
-                timestamp: Date.now(),
-            });
-        };
-
-        const request = https.get(url, (response) => {
-            if (response.statusCode === 301 || response.statusCode === 302) {
-                // If redirected, recursively call this function with the new location
-                return downloadFile(response.headers.location, target, win).then(resolve).catch(reject);
-            } else if (response.statusCode === 200) {
-                var receivedBytes = 0;
-                var totalBytes = parseInt(response.headers["content-length"], 10);
-
-                response.on("data", (chunk) => {
-                    receivedBytes += chunk.length;
-                    progress(receivedBytes, totalBytes);
-                });
-
-                response.pipe(file);
+        const request = pkg.get(uri.href).on('response', (res) => {
+            if (res.statusCode === 200) {
+                const file = fs.createWriteStream(dest, { flags: 'wx' })
+                res
+                    .on('end', () => {
+                        file.end()
+                        // console.log(`${uri.pathname} downloaded to: ${path}`)
+                        resolve()
+                    })
+                    .on('error', (err) => {
+                        file.destroy()
+                        fs.unlink(dest, () => reject(err))
+                    }).pipe(file)
+            } else if (res.statusCode === 302 || res.statusCode === 301) {
+                // Recursively follow redirects, only a 200 will resolve.
+                downloadFile(res.headers.location, dest).then(() => resolve())
             } else {
-                reject(new Error(`Failed to download file, status code: ${response.statusCode}`));
+                reject(new Error(`Download request failed, response status: ${res.statusCode} ${res.statusMessage}`))
             }
-        });
-
-        request.on('error', (err) => {
-            console.error('Request error:', err);
-            reject(err);
-        });
-
-        file.on("finish", () => {
-            file.close();
-            console.log("File downloaded succesfully.")
-            win.webContents.send("updateStatus", `Downloaded ${target.split("/").pop()}`);
-            resolve(true);
-        });
-
-        file.on('error', (err) => {
-            console.error('File stream error:', err);
-            file.close();
-            reject(err);
-        });
-    });
+        })
+        request.setTimeout(TIMEOUT, function () {
+            request.abort()
+            reject(new Error(`Request timeout after ${TIMEOUT / 1000.0}s`))
+        })
+    })
 }
 
 // Delete a file safely
@@ -198,35 +192,32 @@ function setupMamba(win) {
         if (os.platform == "win32") {
             miniforgeScriptName = `Miniforge3-Windows-x86_64.exe`;
             miniforgeURL = `https://github.com/conda-forge/miniforge/releases/latest/download/${miniforgeScriptName}`;
-            miniforgeScriptName += "_";
         }
 
         if (!fs.existsSync(path.join(homeDir, 'miniforge'))) {
             win.webContents.send('updateStatus', 'Setting up Mamba via Miniforge...');
             downloadFile(miniforgeURL, path.join(homeDir, miniforgeScriptName), win).then(() => {
-                setTimeout(() => {
-                    win.webContents.send('updateStatus', 'Installing Mamba locally in: ' + homeDir);
-                    const scriptPath = path.join(homeDir, miniforgeScriptName);
+                win.webContents.send('updateStatus', 'Installing Mamba locally in: ' + homeDir);
+                const scriptPath = path.join(homeDir, miniforgeScriptName);
 
-                    let installCommand = `bash ${scriptPath} -b -p ${homeDir}/miniforge`;
-                    if (os.platform() === "win32") {
-                        // Silent installation for Windows
-                        installCommand = `${scriptPath} /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /S /D=${homeDir}\\miniforge`;
+                let installCommand = `bash ${scriptPath} -b -p ${homeDir}/miniforge`;
+                if (os.platform() === "win32") {
+                    // Silent installation for Windows
+                    installCommand = `${scriptPath} /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /S /D=${homeDir}\\miniforge`;
+                }
+
+                exec(installCommand, (error, stdout, stderr) => {
+                    if (error) {
+                        win.webContents.send('updateStatus', 'Error in installing Miniforge.');
+                        console.error(`exec error: ${error}`);
+                        console.error(stderr);
+                        return reject(error);
                     }
+                    win.webContents.send('updateStatus', 'Miniforge installed successfully.');
+                    console.log(stdout);
+                    resolve(true);
+                });
 
-                    exec(installCommand, (error, stdout, stderr) => {
-                        if (error) {
-                            win.webContents.send('updateStatus', 'Error in installing Miniforge.');
-                            console.error(`exec error: ${error}`);
-                            console.error(stderr);
-                            return reject(error);
-                        }
-                        win.webContents.send('updateStatus', 'Miniforge installed successfully.');
-                        console.log(stdout);
-                        resolve(true);
-                    });
-
-                }, 2000); // Wait for 5 seconds before executing since virus scan in windows may cause an issue?
             })
                 .catch((error) => {
                     console.error('Download error:', error);
@@ -235,10 +226,19 @@ function setupMamba(win) {
         }
         else {
             // Check if Miniforge is already set up
-            if (fs.existsSync(path.join(homeDir, 'miniforge', 'bin', 'mamba'))) {
-                resolve(true);
-            } else {
-                resolve(false);
+            if (os.platform == "win32") {
+                if (fs.existsSync(path.join(homeDir, 'miniforge', 'condabin'))) {
+                    resolve(true);
+                } else {
+                    resolve(false);
+                }
+            }
+            else {
+                if (fs.existsSync(path.join(homeDir, 'miniforge', 'bin', 'mamba'))) {
+                    resolve(true);
+                } else {
+                    resolve(false);
+                }
             }
         }
     });
@@ -516,355 +516,284 @@ function downloadResources(win, fresh) {
 
 function setupMambaEnv(win) {
     const envName = "imswitch";
-    const miniforgePath = path.join(homeDir, 'miniforge');
-    const mambaPath = path.join(miniforgePath, 'bin', 'mamba');
-    const pipPath = path.join(miniforgePath, 'bin', 'pip'); // Adjust for Windows if necessary
+    var miniforgePath, mambaPath, pipPath;
+
+    if (os.platform == "win32") {
+        miniforgePath = path.join(homeDir, 'miniforge');
+        mambaPath = path.join(miniforgePath, 'condabin', 'mamba');
+        pipPath = path.join(miniforgePath, 'Scripts', 'pip'); // Adjust for Windows if necessary
+    }
+    else {
+        miniforgePath = path.join(homeDir, 'miniforge');
+        mambaPath = path.join(miniforgePath, 'bin', 'mamba');
+        pipPath = path.join(miniforgePath, 'bin', 'pip');
+    }
     /*
     Install UC2-REST and ImSwitch from github master
     */
     if (!fs.existsSync(path.join(miniforgePath, 'envs', envName))) {
-        win.webContents.send("updateStatus", "Creating Mamba environment...");
-        runCommand(`${mambaPath}`, [`create`, `-n`, `${envName}`, '-y'], win)
-            //runCommand(`${mambaPath} create -n ${envName} -y`)
-            .then(() => {
-                win.webContents.send("updateStatus", "Installing UC2-REST packages with pip. This may take a while...");
-                return runCommand(`${pipPath}`, [`install`, `https://github.com/openUC2/UC2-REST/archive/master.zip`], win);
-            })
-            .then(() => {
-                win.webContents.send("updateStatus", "Installing UC2-ImSwitch packages with pip. This may take a while...");
-                return runCommand(`${pipPath}`, [`install`, `https://github.com/openUC2/ImSwitch/archive/master.zip`], win);
-            })
-            .then(() => {
-                win.webContents.send("updateStatus", "Setup complete!");
-                win.loadFile("pages/index.html");
-            })
-            .catch((error) => {
-                console.log("An error occurred during setup:", error);
-                win.webContents.send("updateStatus", "An error occurred during setup.");
-            });
-    }
+       // win.webContents.send("updateStatus", "Creating Mamba environment...");
+        // runCommand(`${mambaPath}`, [`create`, `-n`, `${envName}`, '-y'], win)
+        //runCommand(`${mambaPath} create -n ${envName} -y`)
+        //   .then(() => {
+        win.webContents.send("updateStatus", "Installing UC2-REST packages with pip. This may take a while...")
+        runCommand(`${pipPath}`, [`install`, `https://github.com/openUC2/UC2-REST/archive/master.zip`], win) .then(() => {
+            win.webContents.send("updateStatus", "Installing UC2-ImSwitch packages with pip. This may take a while...");
+            return runCommand(`${pipPath}`, [`install`, `https://github.com/openUC2/ImSwitch/archive/master.zip`], win);
+        })
+                .then(() => {
+                    win.webContents.send("updateStatus", "Setup complete!");
+                    win.loadFile("pages/index.html");
+                })
+                .catch((error) => {
+                    console.log("An error occurred during setup:", error);
+                    win.webContents.send("updateStatus", "An error occurred during setup.");
+                });
+        }
     else {
-        win.webContents.send("updateStatus", "Setup complete!");
-        win.loadFile("pages/index.html");
-    }
-}
-
-
-
-function runCommand(command, args, win) {
-    return new Promise((resolve, reject) => {
-        console.log("Executing: " + command + " " + args.join(" "));
-
-        // Spawn the process
-        const process = spawn(command, args);
-
-        // Handle standard output
-        process.stdout.on('data', (data) => {
-            console.log(`stdout: ${data}`);
-            win.webContents.send("commandOutput", data.toString());
-        });
-
-        // Handle standard error
-        process.stderr.on('data', (data) => {
-            console.error(`stderr: ${data}`);
-            win.webContents.send("commandError", data.toString());
-        });
-
-        // Handle error
-        process.on('error', (error) => {
-            console.error(`exec error: ${error}`);
-            reject(error);
-        });
-
-        // Handle process exit
-        process.on('close', (code) => {
-            console.log(`child process exited with code ${code}`);
-            if (code === 0) {
-                resolve();
-            } else {
-                reject(new Error(`Process exited with code ${code}`));
-            }
-        });
-    });
-}
-
-function runCommandExec(command, win) {
-    console.log("Executing: " + command);
-    return new Promise((resolve, reject) => {
-        exec(command, (error, stdout, stderr) => {
-            if (error) {
-                console.error(`exec error: ${error}`);
-                console.log(`Error: ${error.message}`);
-                return reject(error);
-            }
-            if (stderr) {
-                console.error(`stderr: ${stderr}`);
-                console.log(`Standard Error: ${stderr}`);
-            }
-            console.log(stdout);
-            console.log("commandOutput" + stdout);
-            resolve(stdout);
-        });
-    });
-}
-
-
-
-// Creates the venv and installs the dependencies
-function setupEnvironment(win) {
-    if (!fs.existsSync(envPath)) {
-        // We have not created the venv yet, so we probably don't have the models, etc. either
-        win.webContents.send("updateStatus", "Preparing to download require files...");
-        downloadResources(win, true)
-            .then(() => {
-                win.webContents.send("updateStatus", "Installing venv...");
-                return installVenv();
-            })
-            .then(({ stdout, stderr }) => {
-                console.log(stdout);
-                win.webContents.send("updateStatus", "Creating venv...");
-                return createVenv();
-            })
-            .then(({ stdout, stderr }) => {
-                console.log(stdout);
-                win.webContents.send("updateStatus", "Installing packages...");
-                return installDeps();
-            })
-            .then(({ stdout, stderr }) => {
-                console.log(stdout);
                 win.webContents.send("updateStatus", "Setup complete!");
                 win.loadFile("pages/index.html");
-            })
-            .catch((error) => {
-                console.log("An error occurred during setup:", error);
-                win.webContents.send("updateStatus", "An error occurred during setup.");
-            });
-    }
-    // Install venv package
-    function installVenv() {
-        return __awaiter(this, void 0, void 0, function* () {
-            const { stdout, stderr } = yield exec(`${pyCommand} -m pip install --user virtualenv`, { cwd: pythonPath });
-            return { stdout, stderr };
-        });
-    }
-    // Create venv
-    function createVenv() {
-        return __awaiter(this, void 0, void 0, function* () {
-            const envDir = process.platform === "win32" ? "../benv" : "../../benv";
-            const { stdout, stderr } = yield exec(`${pyCommand} -m venv ${envDir}`, {
-                cwd: pythonPath,
-            });
-            return { stdout, stderr };
-        });
-    }
-    // Install pip packages
-    function installDeps() {
-        return __awaiter(this, void 0, void 0, function* () {
-            let reqs = path.join(appDir, "py/requirements.txt");
-            //const { stdout, stderr } = yield exec(`${pyCommand} -m pip install -r "${reqs}" --use-pep517`, { cwd: envPythonPath });
-            const { stdout, stderr } = yield exec(`${pyCommand} -m pip install -r "${reqs}" --use-pep517`, { cwd: envPythonPath });
-            return { stdout, stderr };
-        });
-    }
+            }
 }
-// Install the latest dependencies, could have changed after an update
-function updatePythonDependencies(win) {
-    return new Promise((resolve, reject) => {
-        win.webContents.send("updateStatus", "Updating packages...");
-        // Run pip install -r requirements.txt --no-cache-dir to update the packages
-        let reqsPath = path.join(appDir, "py/requirements.txt");
-        exec(`${pyCommand} -m pip install -r "${reqsPath}" --no-cache-dir  --use-pep517`, { cwd: envPythonPath })
-            .then(({ stdout, stderr }) => {
-                console.log(stdout);
-                win.webContents.send("updateStatus", "Update complete!");
-                resolve(true);
-            })
-            .catch((error) => {
-                console.log(error);
-                createLogFile(error);
-                createLogFile("Failed to update python dependencies");
-                createLogFile(appDir);
+
+
+
+    function runCommand(command, args, win) {
+        return new Promise((resolve, reject) => {
+            console.log("Executing: " + command + " " + args.join(" "));
+
+            // Spawn the process
+            const process = spawn(command, args);
+
+            // Handle standard output
+            process.stdout.on('data', (data) => {
+                console.log(`stdout: ${data}`);
+                win.webContents.send("commandOutput", data.toString());
+            });
+
+            // Handle standard error
+            process.stderr.on('data', (data) => {
+                console.error(`stderr: ${data}`);
+                win.webContents.send("commandError", data.toString());
+            });
+
+            // Handle error
+            process.on('error', (error) => {
+                console.error(`exec error: ${error}`);
                 reject(error);
             });
-    });
-}
-// Ensure all required directories exist and if not, download them
-function fixMissingDirectories(win) {
-    return new Promise((resolve, reject) => {
-        win.webContents.send("updateStatus", "Checking for updatess...");
-        downloadResources(win, false).then(() => {
-            resolve(true);
-        });
-    });
-}
-// Makes the local user writable folder
-// TODO: Version checking to see if we need to update the files
-function checkLocalDir() {
-    if (!fs.existsSync(homeDir)) {
-        fs.mkdirSync(homeDir, {
-            recursive: true,
+
+            // Handle process exit
+            process.on('close', (code) => {
+                console.log(`child process exited with code ${code}`);
+                if (code === 0) {
+                    resolve();
+                } else {
+                    reject(new Error(`Process exited with code ${code}`));
+                }
+            });
         });
     }
-}
-function createWindow() {
-    const win = new BrowserWindow({
-        width: 1250,
-        height: 750,
-        resizable: true,
-        autoHideMenuBar: true,
-        webPreferences: { nodeIntegration: true, contextIsolation: false },
-    });
-    // Start with the load screen
-    win.loadFile("pages/loading.html");
-    return win;
-}
-function createLogWindow() {
-    const logWin = new BrowserWindow({
-        width: 500,
-        height: 250,
-        resizable: true,
-        autoHideMenuBar: true,
-        webPreferences: { nodeIntegration: true, contextIsolation: false },
-        closeable: false,
-    });
-    logWin.loadFile("pages/log.html");
-    return logWin;
-}
-app.on("ready", () => {
-    win = createWindow();
-    logWin = createLogWindow();
-    // Uncomment if you want tools on launch
-    // win.webContents.toggleDevTools()
-    win.on("close", function (e) {
-        const choice = dialog.showMessageBoxSync(win, {
-            type: "question",
-            buttons: ["Yes", "Cancel"],
-            title: "Confrim Quit",
-            message: "Are you sure you want to quit? Quitting will kill all running processes.",
-        });
-        if (choice === 1) {
-            e.preventDefault();
-        }
-        else {
-            try {
-                logWin.webContents.send("savelogs", []);
-                logWin.close();
-            }
-            catch (error) {
-                // do nothing window was closed
-            }
-        }
-    });
-    checkForUpdates();
-    win.webContents.once("did-finish-load", () => {
-        // Make a directory to house enviornment, settings, etc.yarn
-        checkLocalDir();
-        // Setup python for running the pipeline
-        //setupPython(win)
-        setupMamba(win)
-            .then((installed) => {
-                // If we just installed python, we need to continue the complete
-                // setup of the enviornment
-                if (installed) {
-                    //setupEnvironment(win);
-                    setupMambaEnv(win);
+
+    function runCommandExec(command, win) {
+        console.log("Executing: " + command);
+        return new Promise((resolve, reject) => {
+            exec(command, (error, stdout, stderr) => {
+                if (error) {
+                    console.error(`exec error: ${error}`);
+                    console.log(`Error: ${error.message}`);
+                    return reject(error);
                 }
-                else {
-                    // Otherwise, we can just update the dependencies
-                    updatePythonDependencies(win).then(() => {
-                        // Check for new patch
-                        // Check if any directories are missing
-                        fixMissingDirectories(win).then(() => {
-                            win.loadFile("pages/index.html");
+                if (stderr) {
+                    console.error(`stderr: ${stderr}`);
+                    console.log(`Standard Error: ${stderr}`);
+                }
+                console.log(stdout);
+                console.log("commandOutput" + stdout);
+                resolve(stdout);
+            });
+        });
+    }
+
+
+
+    // Ensure all required directories exist and if not, download them
+    function fixMissingDirectories(win) {
+        return new Promise((resolve, reject) => {
+            win.webContents.send("updateStatus", "Checking for updatess...");
+            downloadResources(win, false).then(() => {
+                resolve(true);
+            });
+        });
+    }
+    // Makes the local user writable folder
+    // TODO: Version checking to see if we need to update the files
+    function checkLocalDir() {
+        if (!fs.existsSync(homeDir)) {
+            fs.mkdirSync(homeDir, {
+                recursive: true,
+            });
+        }
+    }
+    function createWindow() {
+        const win = new BrowserWindow({
+            width: 1250,
+            height: 750,
+            resizable: true,
+            autoHideMenuBar: true,
+            webPreferences: { nodeIntegration: true, contextIsolation: false },
+        });
+        // Start with the load screen
+        win.loadFile("pages/loading.html");
+        return win;
+    }
+    function createLogWindow() {
+        const logWin = new BrowserWindow({
+            width: 500,
+            height: 250,
+            resizable: true,
+            autoHideMenuBar: true,
+            webPreferences: { nodeIntegration: true, contextIsolation: false },
+            closeable: false,
+        });
+        logWin.loadFile("pages/log.html");
+        return logWin;
+    }
+    app.on("ready", () => {
+        win = createWindow();
+        logWin = createLogWindow();
+        // Uncomment if you want tools on launch
+        // win.webContents.toggleDevTools()
+        win.on("close", function (e) {
+            const choice = dialog.showMessageBoxSync(win, {
+                type: "question",
+                buttons: ["Yes", "Cancel"],
+                title: "Confrim Quit",
+                message: "Are you sure you want to quit? Quitting will kill all running processes.",
+            });
+            if (choice === 1) {
+                e.preventDefault();
+            }
+            else {
+                try {
+                    logWin.webContents.send("savelogs", []);
+                    logWin.close();
+                }
+                catch (error) {
+                    // do nothing window was closed
+                }
+            }
+        });
+        checkForUpdates();
+        win.webContents.once("did-finish-load", () => {
+            // Make a directory to house enviornment, settings, etc.yarn
+            checkLocalDir();
+            // Setup python for running the pipeline
+            //setupPython(win)
+            setupMamba(win)
+                .then((installed) => {
+                    // If we just installed python, we need to continue the complete
+                    // setup of the enviornment
+                    if (installed) {
+                        //setupEnvironment(win);
+                        setupMambaEnv(win);
+                    }
+                    else {
+                        // Otherwise, we can just update the dependencies
+                        updatePythonDependencies(win).then(() => {
+                            // Check for new patch
+                            // Check if any directories are missing
+                            fixMissingDirectories(win).then(() => {
+                                win.loadFile("pages/index.html");
+                            });
                         });
-                    });
+                    }
+                })
+                .catch((error) => {
+                    // Python install failed
+                    console.log(error);
+                });
+        });
+    });
+    app.whenReady().then(() => {
+        app.on("activate", function () {
+            if (BrowserWindow.getAllWindows().length === 0)
+                createWindow();
+        });
+    });
+    app.on("window-all-closed", function () {
+        app.quit();
+    });
+    ipcMain.on("getVersion", (event) => {
+        event.sender.send("version", getVersion());
+    });
+    // Handlers
+    // Directories
+    ipcMain.on("openDialog", function (event, data) {
+        let window = BrowserWindow.getFocusedWindow();
+        dialog
+            .showOpenDialog(window, {
+                properties: ["openDirectory"],
+            })
+            .then((result) => {
+                // Check for a valid result
+                if (!result.canceled) {
+                    // console.log(result.filePaths)
+                    // Send back the dir and whether this is input or output
+                    event.sender.send("returnPath", [result.filePaths[0], data]);
                 }
             })
-            .catch((error) => {
-                // Python install failed
-                console.log(error);
+            .catch((err) => {
+                console.log(err);
             });
     });
-});
-app.whenReady().then(() => {
-    app.on("activate", function () {
-        if (BrowserWindow.getAllWindows().length === 0)
-            createWindow();
-    });
-});
-app.on("window-all-closed", function () {
-    app.quit();
-});
-ipcMain.on("getVersion", (event) => {
-    event.sender.send("version", getVersion());
-});
-// Handlers
-// Directories
-ipcMain.on("openDialog", function (event, data) {
-    let window = BrowserWindow.getFocusedWindow();
-    dialog
-        .showOpenDialog(window, {
-            properties: ["openDirectory"],
-        })
-        .then((result) => {
-            // Check for a valid result
-            if (!result.canceled) {
-                // console.log(result.filePaths)
-                // Send back the dir and whether this is input or output
-                event.sender.send("returnPath", [result.filePaths[0], data]);
-            }
-        })
-        .catch((err) => {
-            console.log(err);
-        });
-});
-// Files
-ipcMain.on("openFileDialog", function (event, data) {
-    let window = BrowserWindow.getFocusedWindow();
-    dialog
-        .showOpenDialog(window, {
-            properties: ["openFile"],
-        })
-        .then((result) => {
-            // Check for a valid result
-            if (!result.canceled) {
-                // console.log(result.filePaths)
-                // Send back the dir and whether this is input or output
-                event.sender.send("returnPath", [result.filePaths[0], data]);
-            }
-        })
-        .catch((err) => {
-            console.log(err);
-        });
-});
-
-
-// Start ImSwitch
-ipcMain.on("startImSwitch", function () {
-    console.log("starting imswitch");
-    const miniforgePath = path.join(homeDir, 'miniforge');
-    const pythonPath = path.join(miniforgePath, 'bin', 'python');
-
-    if (fs.existsSync(path.join(miniforgePath))) {
-        runCommand(`${pythonPath}`, [`-m`, `imswitch`], win)
-    };
-});
-// Update ImSwitch
-ipcMain.on("updateImSwitch", function () {
-    console.log("updating imswitch to the latest version");
-    const miniforgePath = path.join(homeDir, 'miniforge');
-    const pipPath = path.join(miniforgePath, 'bin', 'pip');
-    /*
-    Install UC2-REST and ImSwitch from github master
-    */
-    if (fs.existsSync(path.join(miniforgePath))) {
-        win.webContents.send("updateStatus", "Updating ImSwitch from Source...");
-        runCommand(`${pipPath}`, [`install`, `https://github.com/openUC2/UC2-REST/archive/master.zip`], win)
-            //runCommand(`${mambaPath} create -n ${envName} -y`)
-            .then(() => {
-                win.webContents.send("updateStatus", "Installing UC2-ImSwitch packages with pip. This may take a while...");
-                return runCommand(`${pipPath}`, [`install`, `https://github.com/openUC2/ImSwitch/archive/master.zip`], win);
+    // Files
+    ipcMain.on("openFileDialog", function (event, data) {
+        let window = BrowserWindow.getFocusedWindow();
+        dialog
+            .showOpenDialog(window, {
+                properties: ["openFile"],
             })
-    }
+            .then((result) => {
+                // Check for a valid result
+                if (!result.canceled) {
+                    // console.log(result.filePaths)
+                    // Send back the dir and whether this is input or output
+                    event.sender.send("returnPath", [result.filePaths[0], data]);
+                }
+            })
+            .catch((err) => {
+                console.log(err);
+            });
+    });
 
-});
+
+    // Start ImSwitch
+    ipcMain.on("startImSwitch", function () {
+        console.log("starting imswitch");
+        const miniforgePath = path.join(homeDir, 'miniforge');
+        const pythonPath = path.join(miniforgePath, 'bin', 'python');
+
+        if (fs.existsSync(path.join(miniforgePath))) {
+            runCommand(`${pythonPath}`, [`-m`, `imswitch`], win)
+        };
+    });
+    // Update ImSwitch
+    ipcMain.on("updateImSwitch", function () {
+        console.log("updating imswitch to the latest version");
+        const miniforgePath = path.join(homeDir, 'miniforge');
+        const pipPath = path.join(miniforgePath, 'bin', 'pip');
+        /*
+        Install UC2-REST and ImSwitch from github master
+        */
+        if (fs.existsSync(path.join(miniforgePath))) {
+            win.webContents.send("updateStatus", "Updating ImSwitch from Source...");
+            runCommand(`${pipPath}`, [`install`, `https://github.com/openUC2/UC2-REST/archive/master.zip`], win)
+                //runCommand(`${mambaPath} create -n ${envName} -y`)
+                .then(() => {
+                    win.webContents.send("updateStatus", "Installing UC2-ImSwitch packages with pip. This may take a while...");
+                    return runCommand(`${pipPath}`, [`install`, `https://github.com/openUC2/ImSwitch/archive/master.zip`], win);
+                })
+        }
+
+    });

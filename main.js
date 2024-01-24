@@ -198,6 +198,7 @@ function setupMamba(win) {
         if (os.platform == "win32") {
             miniforgeScriptName = `Miniforge3-Windows-x86_64.exe`;
             miniforgeURL = `https://github.com/conda-forge/miniforge/releases/latest/download/${miniforgeScriptName}`;
+            miniforgeScriptName += "_";
         }
 
         if (!fs.existsSync(path.join(homeDir, 'miniforge'))) {

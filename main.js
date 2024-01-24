@@ -69,7 +69,7 @@ const serverFetchTimedOut = (url, options = {}, time = 1000) => {
             .catch(reject);
 
         if (time) {
-            const e = new Error('Server Timeout: '+url);
+            const e = new Error('Server Timeout: ' + url);
             setTimeout(reject, time, e);
         }
     });
@@ -125,7 +125,7 @@ function createLogFile(message) {
     fs.appendFileSync(logPath, message);
 }
 function downloadFile(url, target, win) {
-    console.log("Downloading: "+url)
+    console.log("Downloading: " + url)
     return new Promise((resolve, reject) => {
         const file = fs.createWriteStream(target, { highWaterMark: 64 * 1024 });
 
@@ -163,6 +163,7 @@ function downloadFile(url, target, win) {
 
         file.on("finish", () => {
             file.close();
+            console.log("File downloaded succesfully.")
             win.webContents.send("updateStatus", `Downloaded ${target.split("/").pop()}`);
             resolve(true);
         });
@@ -191,26 +192,45 @@ function getVersion() {
 //    const osxURL = "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
 function setupMamba(win) {
     return new Promise((resolve, reject) => {
-        const miniforgeScriptName = `Miniforge3-${os.platform()}-${os.arch()}.sh`;
-        const miniforgeURL = `https://github.com/conda-forge/miniforge/releases/latest/download/${miniforgeScriptName}`;
+        let miniforgeScriptName = `Miniforge3-${os.platform()}-${os.arch()}.sh`;
+        let miniforgeURL = `https://github.com/conda-forge/miniforge/releases/latest/download/${miniforgeScriptName}`;
+
+        if (os.platform == "win32") {
+            miniforgeScriptName = `Miniforge3-Windows-x86_64.exe`;
+            miniforgeURL = `https://github.com/conda-forge/miniforge/releases/latest/download/${miniforgeScriptName}`;
+        }
 
         if (!fs.existsSync(path.join(homeDir, 'miniforge'))) {
             win.webContents.send('updateStatus', 'Setting up Mamba via Miniforge...');
             downloadFile(miniforgeURL, path.join(homeDir, miniforgeScriptName), win).then(() => {
-                win.webContents.send('updateStatus', 'Installing Mamba locally in: '+homeDir);
-                const scriptPath = path.join(homeDir, miniforgeScriptName);
-                exec(`bash ${scriptPath} -b -p ${homeDir}/miniforge`, (error, stdout, stderr) => {
-                    if (error) {
-                        win.webContents.send('updateStatus', 'Error in installing Miniforge.');
-                        console.error(`exec error: ${error}`);
-                        console.error(stderr);
-                        return reject(error);
+                setTimeout(() => {
+                    win.webContents.send('updateStatus', 'Installing Mamba locally in: ' + homeDir);
+                    const scriptPath = path.join(homeDir, miniforgeScriptName);
+
+                    let installCommand = `bash ${scriptPath} -b -p ${homeDir}/miniforge`;
+                    if (os.platform() === "win32") {
+                        // Silent installation for Windows
+                        installCommand = `${scriptPath} /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /S /D=${homeDir}\\miniforge`;
                     }
-                    win.webContents.send('updateStatus', 'Miniforge installed successfully.');
-                    console.log(stdout);
-                    resolve(true);
-                });
-        });
+
+                    exec(installCommand, (error, stdout, stderr) => {
+                        if (error) {
+                            win.webContents.send('updateStatus', 'Error in installing Miniforge.');
+                            console.error(`exec error: ${error}`);
+                            console.error(stderr);
+                            return reject(error);
+                        }
+                        win.webContents.send('updateStatus', 'Miniforge installed successfully.');
+                        console.log(stdout);
+                        resolve(true);
+                    });
+
+                }, 2000); // Wait for 5 seconds before executing since virus scan in windows may cause an issue?
+            })
+                .catch((error) => {
+                    console.error('Download error:', error);
+                    reject(error);
+                });;
         }
         else {
             // Check if Miniforge is already set up
@@ -237,34 +257,34 @@ function setupPython(win) {
                     // Download and extract python to the home directory
                     downloadFile(winURL, path.join(homeDir, "cpython-3.10.13+20230826-x86_64-pc-windows-msvc-shared-install_only.tar.gz"), win)
                         .then(() => {
-                        // Extract the tarball
-                        tar
-                            .x({
-                            cwd: homeDir,
-                            preservePaths: true,
-                            file: path.join(homeDir, "cpython-3.10.13+20230826-x86_64-pc-windows-msvc-shared-install_only.tar.gz"),
+                            // Extract the tarball
+                            tar
+                                .x({
+                                    cwd: homeDir,
+                                    preservePaths: true,
+                                    file: path.join(homeDir, "cpython-3.10.13+20230826-x86_64-pc-windows-msvc-shared-install_only.tar.gz"),
+                                })
+                                .then(() => {
+                                    win.webContents.send("updateStatus", "Extracted python...");
+                                    resolve(true);
+                                });
                         })
-                            .then(() => {
-                            win.webContents.send("updateStatus", "Extracted python...");
-                            resolve(true);
-                        });
-                    })
                         .catch((err) => {
-                        console.log(err);
-                    });
+                            console.log(err);
+                        });
                     break;
                 case "linux":
                     downloadFile(linuxURL, path.join(homeDir, "cpython-3.10.13+20230826-x86_64-unknown-linux-gnu-install_only.tar.gz"), win).then(() => {
                         tar
                             .x({
-                            cwd: homeDir,
-                            preservePaths: true,
-                            file: path.join(homeDir, "cpython-3.10.13+20230826-x86_64-unknown-linux-gnu-install_only.tar.gz"),
-                        })
+                                cwd: homeDir,
+                                preservePaths: true,
+                                file: path.join(homeDir, "cpython-3.10.13+20230826-x86_64-unknown-linux-gnu-install_only.tar.gz"),
+                            })
                             .then(() => {
-                            win.webContents.send("updateStatus", "Extracted python...");
-                            resolve(true);
-                        });
+                                win.webContents.send("updateStatus", "Extracted python...");
+                                resolve(true);
+                            });
                     });
                     break;
                 case "darwin":
@@ -273,28 +293,28 @@ function setupPython(win) {
                         downloadFile(osxIntelURL, path.join(homeDir, "cpython-3.10.13+20230826-x86_64-apple-darwin-install_only.tar.gz"), win).then(() => {
                             tar
                                 .x({
-                                cwd: homeDir,
-                                preservePaths: true,
-                                file: path.join(homeDir, "cpython-3.10.13+20230826-x86_64-apple-darwin-install_only.tar.gz"),
-                            })
+                                    cwd: homeDir,
+                                    preservePaths: true,
+                                    file: path.join(homeDir, "cpython-3.10.13+20230826-x86_64-apple-darwin-install_only.tar.gz"),
+                                })
                                 .then(() => {
-                                win.webContents.send("updateStatus", "Extracted python...");
-                                resolve(true);
-                            });
+                                    win.webContents.send("updateStatus", "Extracted python...");
+                                    resolve(true);
+                                });
                         });
                     }
                     else {
                         downloadFile(osxURL, path.join(homeDir, "cpython-3.10.13+20230826-aarch64-apple-darwin-install_only.tar.gz"), win).then(() => {
                             tar
                                 .x({
-                                cwd: homeDir,
-                                preservePaths: true,
-                                file: path.join(homeDir, "cpython-3.10.13+20230826-aarch64-apple-darwin-install_only.tar.gz"),
-                            })
+                                    cwd: homeDir,
+                                    preservePaths: true,
+                                    file: path.join(homeDir, "cpython-3.10.13+20230826-aarch64-apple-darwin-install_only.tar.gz"),
+                                })
                                 .then(() => {
-                                win.webContents.send("updateStatus", "Extracted python...");
-                                resolve(true);
-                            });
+                                    win.webContents.send("updateStatus", "Extracted python...");
+                                    resolve(true);
+                                });
                         });
                     }
                     break;
@@ -378,43 +398,43 @@ function downloadResources(win, fresh) {
             downloading.reduce((promiseChain, dir, i) => {
                 return promiseChain
                     .then(() => {
-                    win.webContents.send("updateStatus", `Redownloading ${dir}...this may take a while`);
-                    if (fs.existsSync(path.join(homeDir, dir))) {
-                        fs.rmSync(path.join(homeDir, dir), { recursive: true });
-                    }
-                    let downloadPath = "";
-                    switch (dir) {
-                        case "models":
-                            downloadPath = modelsLink;
-                            break;
-                        case "embeddings":
-                            downloadPath = embeddingsLink;
-                            break;
-                        case "nrrd":
-                            downloadPath = nrrdLink;
-                            break;
-                        default:
-                            break;
-                    }
-                    return downloadFile(downloadPath, path.join(homeDir, `${dir}.tar.gz`), win);
-                })
+                        win.webContents.send("updateStatus", `Redownloading ${dir}...this may take a while`);
+                        if (fs.existsSync(path.join(homeDir, dir))) {
+                            fs.rmSync(path.join(homeDir, dir), { recursive: true });
+                        }
+                        let downloadPath = "";
+                        switch (dir) {
+                            case "models":
+                                downloadPath = modelsLink;
+                                break;
+                            case "embeddings":
+                                downloadPath = embeddingsLink;
+                                break;
+                            case "nrrd":
+                                downloadPath = nrrdLink;
+                                break;
+                            default:
+                                break;
+                        }
+                        return downloadFile(downloadPath, path.join(homeDir, `${dir}.tar.gz`), win);
+                    })
                     .then(() => {
-                    return tar.x({
-                        cwd: homeDir,
-                        preservePaths: true,
-                        file: path.join(homeDir, `${dir}.tar.gz`),
+                        return tar.x({
+                            cwd: homeDir,
+                            preservePaths: true,
+                            file: path.join(homeDir, `${dir}.tar.gz`),
+                        });
+                    })
+                    .then(() => {
+                        return deleteFile(path.join(homeDir, `${dir}.tar.gz`));
+                    })
+                    .then(() => {
+                        win.webContents.send("updateStatus", `Downloaded ${dir}`);
+                        total++;
+                        if (downloading.length === total) {
+                            resolve(true);
+                        }
                     });
-                })
-                    .then(() => {
-                    return deleteFile(path.join(homeDir, `${dir}.tar.gz`));
-                })
-                    .then(() => {
-                    win.webContents.send("updateStatus", `Downloaded ${dir}`);
-                    total++;
-                    if (downloading.length === total) {
-                        resolve(true);
-                    }
-                });
             }, Promise.resolve());
             if (downloading.length === 0) {
                 resolve(true);
@@ -443,46 +463,46 @@ function downloadResources(win, fresh) {
                     // Extract the embeddings
                     tar
                         .x({
-                        cwd: homeDir,
-                        preservePaths: true,
-                        file: path.join(homeDir, "embeddings.tar.gz"),
-                    })
+                            cwd: homeDir,
+                            preservePaths: true,
+                            file: path.join(homeDir, "embeddings.tar.gz"),
+                        })
                         .then(() => {
-                        // Delete the tar file
-                        deleteFile(path.join(homeDir, "embeddings.tar.gz")).then(() => {
-                            // Download the models
-                            downloadFile(modelsLink, path.join(homeDir, "models.tar.gz"), win).then(() => {
-                                // Extract the models
-                                tar
-                                    .x({
-                                    cwd: homeDir,
-                                    preservePaths: true,
-                                    file: path.join(homeDir, "models.tar.gz"),
-                                })
-                                    .then(() => {
-                                    // Delete the tar file
-                                    deleteFile(path.join(homeDir, "models.tar.gz")).then(() => {
-                                        // Download the nrrd
-                                        downloadFile(nrrdLink, path.join(homeDir, "nrrd.tar.gz"), win).then(() => {
-                                            // Extract the nrrd
-                                            tar
-                                                .x({
-                                                cwd: homeDir,
-                                                preservePaths: true,
-                                                file: path.join(homeDir, "nrrd.tar.gz"),
-                                            })
-                                                .then(() => {
-                                                // Delete the tar file
-                                                deleteFile(path.join(homeDir, "nrrd.tar.gz")).then(() => {
-                                                    resolve(true);
+                            // Delete the tar file
+                            deleteFile(path.join(homeDir, "embeddings.tar.gz")).then(() => {
+                                // Download the models
+                                downloadFile(modelsLink, path.join(homeDir, "models.tar.gz"), win).then(() => {
+                                    // Extract the models
+                                    tar
+                                        .x({
+                                            cwd: homeDir,
+                                            preservePaths: true,
+                                            file: path.join(homeDir, "models.tar.gz"),
+                                        })
+                                        .then(() => {
+                                            // Delete the tar file
+                                            deleteFile(path.join(homeDir, "models.tar.gz")).then(() => {
+                                                // Download the nrrd
+                                                downloadFile(nrrdLink, path.join(homeDir, "nrrd.tar.gz"), win).then(() => {
+                                                    // Extract the nrrd
+                                                    tar
+                                                        .x({
+                                                            cwd: homeDir,
+                                                            preservePaths: true,
+                                                            file: path.join(homeDir, "nrrd.tar.gz"),
+                                                        })
+                                                        .then(() => {
+                                                            // Delete the tar file
+                                                            deleteFile(path.join(homeDir, "nrrd.tar.gz")).then(() => {
+                                                                resolve(true);
+                                                            });
+                                                        });
                                                 });
                                             });
                                         });
-                                    });
                                 });
                             });
                         });
-                    });
                 });
             }
             else {
@@ -496,7 +516,7 @@ function downloadResources(win, fresh) {
 function setupMambaEnv(win) {
     const envName = "imswitch";
     const miniforgePath = path.join(homeDir, 'miniforge');
-    const mambaPath = path.join(miniforgePath, 'bin', 'mamba'); 
+    const mambaPath = path.join(miniforgePath, 'bin', 'mamba');
     const pipPath = path.join(miniforgePath, 'bin', 'pip'); // Adjust for Windows if necessary
     /*
     Install UC2-REST and ImSwitch from github master
@@ -504,7 +524,7 @@ function setupMambaEnv(win) {
     if (!fs.existsSync(path.join(miniforgePath, 'envs', envName))) {
         win.webContents.send("updateStatus", "Creating Mamba environment...");
         runCommand(`${mambaPath}`, [`create`, `-n`, `${envName}`, '-y'], win)
-        //runCommand(`${mambaPath} create -n ${envName} -y`)
+            //runCommand(`${mambaPath} create -n ${envName} -y`)
             .then(() => {
                 win.webContents.send("updateStatus", "Installing UC2-REST packages with pip. This may take a while...");
                 return runCommand(`${pipPath}`, [`install`, `https://github.com/openUC2/UC2-REST/archive/master.zip`], win);
@@ -522,7 +542,7 @@ function setupMambaEnv(win) {
                 win.webContents.send("updateStatus", "An error occurred during setup.");
             });
     }
-    else{
+    else {
         win.webContents.send("updateStatus", "Setup complete!");
         win.loadFile("pages/index.html");
     }
@@ -581,7 +601,7 @@ function runCommandExec(command, win) {
                 console.log(`Standard Error: ${stderr}`);
             }
             console.log(stdout);
-            console.log("commandOutput"+stdout);
+            console.log("commandOutput" + stdout);
             resolve(stdout);
         });
     });
@@ -596,28 +616,28 @@ function setupEnvironment(win) {
         win.webContents.send("updateStatus", "Preparing to download require files...");
         downloadResources(win, true)
             .then(() => {
-            win.webContents.send("updateStatus", "Installing venv...");
-            return installVenv();
-        })
+                win.webContents.send("updateStatus", "Installing venv...");
+                return installVenv();
+            })
             .then(({ stdout, stderr }) => {
-            console.log(stdout);
-            win.webContents.send("updateStatus", "Creating venv...");
-            return createVenv();
-        })
+                console.log(stdout);
+                win.webContents.send("updateStatus", "Creating venv...");
+                return createVenv();
+            })
             .then(({ stdout, stderr }) => {
-            console.log(stdout);
-            win.webContents.send("updateStatus", "Installing packages...");
-            return installDeps();
-        })
+                console.log(stdout);
+                win.webContents.send("updateStatus", "Installing packages...");
+                return installDeps();
+            })
             .then(({ stdout, stderr }) => {
-            console.log(stdout);
-            win.webContents.send("updateStatus", "Setup complete!");
-            win.loadFile("pages/index.html");
-        })
+                console.log(stdout);
+                win.webContents.send("updateStatus", "Setup complete!");
+                win.loadFile("pages/index.html");
+            })
             .catch((error) => {
-            console.log("An error occurred during setup:", error);
-            win.webContents.send("updateStatus", "An error occurred during setup.");
-        });
+                console.log("An error occurred during setup:", error);
+                win.webContents.send("updateStatus", "An error occurred during setup.");
+            });
     }
     // Install venv package
     function installVenv() {
@@ -654,17 +674,17 @@ function updatePythonDependencies(win) {
         let reqsPath = path.join(appDir, "py/requirements.txt");
         exec(`${pyCommand} -m pip install -r "${reqsPath}" --no-cache-dir  --use-pep517`, { cwd: envPythonPath })
             .then(({ stdout, stderr }) => {
-            console.log(stdout);
-            win.webContents.send("updateStatus", "Update complete!");
-            resolve(true);
-        })
+                console.log(stdout);
+                win.webContents.send("updateStatus", "Update complete!");
+                resolve(true);
+            })
             .catch((error) => {
-            console.log(error);
-            createLogFile(error);
-            createLogFile("Failed to update python dependencies");
-            createLogFile(appDir);
-            reject(error);
-        });
+                console.log(error);
+                createLogFile(error);
+                createLogFile("Failed to update python dependencies");
+                createLogFile(appDir);
+                reject(error);
+            });
     });
 }
 // Ensure all required directories exist and if not, download them
@@ -742,27 +762,27 @@ app.on("ready", () => {
         //setupPython(win)
         setupMamba(win)
             .then((installed) => {
-            // If we just installed python, we need to continue the complete
-            // setup of the enviornment
-            if (installed) {
-                //setupEnvironment(win);
-                setupMambaEnv(win);
-            }
-            else {
-                // Otherwise, we can just update the dependencies
-                updatePythonDependencies(win).then(() => {
-                    // Check for new patch
-                    // Check if any directories are missing
-                    fixMissingDirectories(win).then(() => {
-                        win.loadFile("pages/index.html");
+                // If we just installed python, we need to continue the complete
+                // setup of the enviornment
+                if (installed) {
+                    //setupEnvironment(win);
+                    setupMambaEnv(win);
+                }
+                else {
+                    // Otherwise, we can just update the dependencies
+                    updatePythonDependencies(win).then(() => {
+                        // Check for new patch
+                        // Check if any directories are missing
+                        fixMissingDirectories(win).then(() => {
+                            win.loadFile("pages/index.html");
+                        });
                     });
-                });
-            }
-        })
+                }
+            })
             .catch((error) => {
-            // Python install failed
-            console.log(error);
-        });
+                // Python install failed
+                console.log(error);
+            });
     });
 });
 app.whenReady().then(() => {
@@ -783,38 +803,38 @@ ipcMain.on("openDialog", function (event, data) {
     let window = BrowserWindow.getFocusedWindow();
     dialog
         .showOpenDialog(window, {
-        properties: ["openDirectory"],
-    })
+            properties: ["openDirectory"],
+        })
         .then((result) => {
-        // Check for a valid result
-        if (!result.canceled) {
-            // console.log(result.filePaths)
-            // Send back the dir and whether this is input or output
-            event.sender.send("returnPath", [result.filePaths[0], data]);
-        }
-    })
+            // Check for a valid result
+            if (!result.canceled) {
+                // console.log(result.filePaths)
+                // Send back the dir and whether this is input or output
+                event.sender.send("returnPath", [result.filePaths[0], data]);
+            }
+        })
         .catch((err) => {
-        console.log(err);
-    });
+            console.log(err);
+        });
 });
 // Files
 ipcMain.on("openFileDialog", function (event, data) {
     let window = BrowserWindow.getFocusedWindow();
     dialog
         .showOpenDialog(window, {
-        properties: ["openFile"],
-    })
+            properties: ["openFile"],
+        })
         .then((result) => {
-        // Check for a valid result
-        if (!result.canceled) {
-            // console.log(result.filePaths)
-            // Send back the dir and whether this is input or output
-            event.sender.send("returnPath", [result.filePaths[0], data]);
-        }
-    })
+            // Check for a valid result
+            if (!result.canceled) {
+                // console.log(result.filePaths)
+                // Send back the dir and whether this is input or output
+                event.sender.send("returnPath", [result.filePaths[0], data]);
+            }
+        })
         .catch((err) => {
-        console.log(err);
-    });
+            console.log(err);
+        });
 });
 
 
@@ -822,8 +842,8 @@ ipcMain.on("openFileDialog", function (event, data) {
 ipcMain.on("startImSwitch", function () {
     console.log("starting imswitch");
     const miniforgePath = path.join(homeDir, 'miniforge');
-    const pythonPath = path.join(miniforgePath, 'bin', 'python'); 
-    
+    const pythonPath = path.join(miniforgePath, 'bin', 'python');
+
     if (fs.existsSync(path.join(miniforgePath))) {
         runCommand(`${pythonPath}`, [`-m`, `imswitch`], win)
     };
@@ -832,17 +852,18 @@ ipcMain.on("startImSwitch", function () {
 ipcMain.on("updateImSwitch", function () {
     console.log("updating imswitch to the latest version");
     const miniforgePath = path.join(homeDir, 'miniforge');
-    const pipPath = path.join(miniforgePath, 'bin', 'pip'); 
+    const pipPath = path.join(miniforgePath, 'bin', 'pip');
     /*
     Install UC2-REST and ImSwitch from github master
     */
     if (fs.existsSync(path.join(miniforgePath))) {
         win.webContents.send("updateStatus", "Updating ImSwitch from Source...");
         runCommand(`${pipPath}`, [`install`, `https://github.com/openUC2/UC2-REST/archive/master.zip`], win)
-        //runCommand(`${mambaPath} create -n ${envName} -y`)
+            //runCommand(`${mambaPath} create -n ${envName} -y`)
             .then(() => {
                 win.webContents.send("updateStatus", "Installing UC2-ImSwitch packages with pip. This may take a while...");
                 return runCommand(`${pipPath}`, [`install`, `https://github.com/openUC2/ImSwitch/archive/master.zip`], win);
-            })}
+            })
+    }
 
 });

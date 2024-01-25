@@ -227,7 +227,7 @@ function setupMamba(win) {
         else {
             // Check if Miniforge is already set up
             if (os.platform == "win32") {
-                if (fs.existsSync(path.join(homeDir, 'miniforge', 'condabin'))) {
+                if (fs.existsSync(path.join(homeDir, 'miniforge'))) {
                     resolve(true);
                 } else {
                     resolve(false);
@@ -531,7 +531,7 @@ function setupMambaEnv(win) {
     /*
     Install UC2-REST and ImSwitch from github master
     */
-    if (!fs.existsSync(path.join(miniforgePath, 'envs', envName))) {
+    if (!fs.existsSync(path.join(miniforgePath))) {
        // win.webContents.send("updateStatus", "Creating Mamba environment...");
         // runCommand(`${mambaPath}`, [`create`, `-n`, `${envName}`, '-y'], win)
         //runCommand(`${mambaPath} create -n ${envName} -y`)
@@ -772,8 +772,10 @@ function setupMambaEnv(win) {
     ipcMain.on("startImSwitch", function () {
         console.log("starting imswitch");
         const miniforgePath = path.join(homeDir, 'miniforge');
-        const pythonPath = path.join(miniforgePath, 'bin', 'python');
-
+        var pythonPath = path.join(miniforgePath, 'bin', 'python');
+        if (os.platform == "win32") {
+            pythonPath = path.join(miniforgePath, 'python');
+        }
         if (fs.existsSync(path.join(miniforgePath))) {
             runCommand(`${pythonPath}`, [`-m`, `imswitch`], win)
         };
@@ -781,8 +783,12 @@ function setupMambaEnv(win) {
     // Update ImSwitch
     ipcMain.on("updateImSwitch", function () {
         console.log("updating imswitch to the latest version");
-        const miniforgePath = path.join(homeDir, 'miniforge');
-        const pipPath = path.join(miniforgePath, 'bin', 'pip');
+        
+        var miniforgePath = path.join(homeDir, 'miniforge');
+        var pipPath = path.join(miniforgePath, 'bin', 'pip');
+        if (os.platform == "win32") {
+            pipPath = path.join(miniforgePath, 'condabin', 'pip');
+        }
         /*
         Install UC2-REST and ImSwitch from github master
         */

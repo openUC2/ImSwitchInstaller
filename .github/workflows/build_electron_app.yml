@@ -1,5 +1,8 @@
 name: Build and Package Electron App
 
+env:
+  GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
 on:
   workflow_dispatch:
   push:

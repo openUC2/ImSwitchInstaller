@@ -26,10 +26,10 @@ jobs:
         node-version: ${{ matrix.node-version }}
 
     - name: Install dependencies
-      run: yarn install
+      run: npm install
 
     - name: Build and Package
-      run: yarn dist
+      run: npm dist
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v2

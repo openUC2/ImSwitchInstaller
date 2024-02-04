@@ -516,22 +516,24 @@ function downloadResources(win, fresh) {
 
 function setupMambaEnv(win) {
     const envName = "imswitch";
-    var miniforgePath, mambaPath, pipPath;
+    var miniforgePath, mambaPath, pipPath, imswitchPath;
 
     if (os.platform == "win32") {
         miniforgePath = path.join(homeDir, 'miniforge');
         mambaPath = path.join(miniforgePath, 'condabin', 'mamba');
         pipPath = path.join(miniforgePath, 'Scripts', 'pip'); // Adjust for Windows if necessary
+        imswitchPath = path.join(miniforgePath, 'site-packages', 'imswitch')
     }
     else {
         miniforgePath = path.join(homeDir, 'miniforge');
         mambaPath = path.join(miniforgePath, 'bin', 'mamba');
         pipPath = path.join(miniforgePath, 'bin', 'pip');
+        imswitchPath = path.join(miniforgePath, 'site-packages', 'imswitch')
     }
     /*
     Install UC2-REST and ImSwitch from github master
     */
-    if (!fs.existsSync(path.join(miniforgePath))) {
+    if (!fs.existsSync(path.join(miniforgePath)) || !fs.existsSync(path.join(imswitchPath))) {
        // win.webContents.send("updateStatus", "Creating Mamba environment...");
         // runCommand(`${mambaPath}`, [`create`, `-n`, `${envName}`, '-y'], win)
         //runCommand(`${mambaPath} create -n ${envName} -y`)

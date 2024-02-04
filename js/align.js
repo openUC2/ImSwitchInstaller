@@ -5,13 +5,6 @@ var outdir = document.getElementById("outdir");
 var loadbar = document.getElementById("loadbar");
 var loadmessage = document.getElementById("loadmessage");
 var back = document.getElementById("back");
-var whole = document.getElementById("whole");
-var half = document.getElementById("half");
-var spacing = document.getElementById("spacing");
-var legacy = document.getElementById("legacy");
-var alignmentMethod = "True";
-var useLegacy = "False";
-var methods = document.querySelector("#methods");
 
 
 

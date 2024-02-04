@@ -768,6 +768,20 @@ function setupMambaEnv(win) {
     });
 
 
+    // downloadHIK
+    ipcMain.on("downloadHIK", function (event, data) {
+        console.log("Downloading HIK");
+        const hikURL = "https://www.hikrobotics.com/cn2/source/support/software/MVS_STD_4.3.0_23.1225.zip";
+        shell.openExternal(hikURL);
+    });
+
+    // downloadDaheng
+    ipcMain.on("downloadDaheng", function (event, data) {
+        console.log("Downloading Daheng");
+        const dahengURL = "https://dahengimaging.com/downloads/Galaxy_Windows_EN_32bits-64bits_1.24.2308.9101.zip";
+        shell.openExternal(dahengURL);
+    });
+
     // Start ImSwitch
     ipcMain.on("startImSwitch", function () {
         console.log("starting imswitch");

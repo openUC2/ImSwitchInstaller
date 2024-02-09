@@ -522,13 +522,13 @@ function setupMambaEnv(win) {
         miniforgePath = path.join(homeDir, 'miniforge');
         mambaPath = path.join(miniforgePath, 'condabin', 'mamba');
         pipPath = path.join(miniforgePath, 'Scripts', 'pip'); // Adjust for Windows if necessary
-        imswitchPath = path.join(miniforgePath, 'site-packages', 'imswitch')
+        imswitchPath = path.join(miniforgePath, 'Lib', 'site-packages', 'imswitch')
     }
     else {
         miniforgePath = path.join(homeDir, 'miniforge');
         mambaPath = path.join(miniforgePath, 'bin', 'mamba');
         pipPath = path.join(miniforgePath, 'bin', 'pip');
-        imswitchPath = path.join(miniforgePath, 'site-packages', 'imswitch')
+        imswitchPath = path.join(miniforgePath,  'site-packages', 'imswitch')
     }
     /*
     Install UC2-REST and ImSwitch from github master
@@ -686,7 +686,7 @@ function setupMambaEnv(win) {
                 }
             }
         });
-        checkForUpdates();
+        //checkForUpdates();
         win.webContents.once("did-finish-load", () => {
             // Make a directory to house enviornment, settings, etc.yarn
             checkLocalDir();

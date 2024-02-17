@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>JSON Editor</title>
+  <link href="../node_modules/jsoneditor/dist/jsoneditor.min.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+  <div id="jsoneditor" style="width: 100%; height: 100%;"></div>
+  <script src="../node_modules/jsoneditor/dist/jsoneditor.min.js"></script>
+  <script type="text/javascript">
+  const { JSONEditor } = require('jsoneditor');
+  const fs = require('fs');
+  const path = require('path');
+  
+  window.addEventListener('DOMContentLoaded', () => {
+    const container = document.getElementById('jsoneditor');
+    const options = {};
+    const editor = new JSONEditor(container, options);
+  
+    fs.readFile(path.join(__dirname, 'example.json'), (err, data) => {
+      if (err) throw err;
+      const json = JSON.parse(data);
+      editor.set(json);
+    });
+  });
+</script>
+</body>
+</html>

@@ -94,19 +94,19 @@ const serverFetchTimedOut = (url, options = {}, time = 1000) => {
 
 async function checkForUpdates() {
     try {
-  
+
       const GITHUB_API_RELEASES = 'https://api.github.com/repos/openuc2/imswitch/releases/latest';
       const CURRENT_VERSION_TAG = 'current-version-tag'; // Define your current version tag
-  
+
       const response = await axios.get(GITHUB_API_RELEASES);
-  
+
       if (response.status !== 200) {
         throw new Error(`GitHub API response status: ${response.status}`);
       }
-  
+
       const data = response.data;
       const latestVersionTag = data.tag_name;
-  
+
       //if (semver.valid(latestVersionTag) && semver.gt(latestVersionTag, CURRENT_VERSION_TAG)) {
         const userResponse = await dialog.showMessageBox({
           type: 'info',
@@ -117,7 +117,7 @@ async function checkForUpdates() {
           defaultId: 0,
           cancelId: 1,
         });
-  
+
         if (userResponse.response === 0) {
           shell.openExternal(data.html_url); // URL to the latest release page
         }
@@ -129,7 +129,7 @@ async function checkForUpdates() {
       dialog.showErrorBox('Update Check Failed', 'There was an error checking for updates. Please try again later.');
     }
   }
-  
+
 // Promise version of file moving
 function move(o, t) {
   return new Promise((resolve, reject) => {
@@ -816,42 +816,86 @@ app.on("ready", () => {
             });
           });
         }
-      })
-      .catch((error) => {
-        // Python install failed
-        console.log(error);
-      });
-  });
-});
-app.whenReady().then(() => {
-  app.on("activate", function () {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-  });
-});
-app.on("window-all-closed", function () {
-  app.quit();
-});
-ipcMain.on("getVersion", (event) => {
-  event.sender.send("version", getVersion());
-});
-// Handlers
-// Directories
-ipcMain.on("openDialog", function (event, data) {
-  let window = BrowserWindow.getFocusedWindow();
-  dialog
-    .showOpenDialog(window, {
-      properties: ["openDirectory"],
-    })
-    .then((result) => {
-      // Check for a valid result
-      if (!result.canceled) {
-        // console.log(result.filePaths)
-        // Send back the dir and whether this is input or output
-        event.sender.send("returnPath", [result.filePaths[0], data]);
-      }
-    })
-    .catch((err) => {
-      console.log(err);
+    }
+    function createWindow() {
+        const win = new BrowserWindow({
+            width: 1250,
+            height: 750,
+            resizable: true,
+            autoHideMenuBar: true,
+            webPreferences: { nodeIntegration: true, contextIsolation: false },
+        });
+        // Start with the load screen
+        win.loadFile("pages/loading.html");
+        return win;
+    }
+    function createLogWindow() {
+        const logWin = new BrowserWindow({
+            width: 500,
+            height: 250,
+            resizable: true,
+            autoHideMenuBar: true,
+            webPreferences: { nodeIntegration: true, contextIsolation: false },
+            closeable: false,
+        });
+        logWin.loadFile("pages/log.html");
+        return logWin;
+    }
+    app.on("ready", () => {
+        win = createWindow();
+        logWin = createLogWindow();
+        // Uncomment if you want tools on launch
+        // win.webContents.toggleDevTools()
+        win.on("close", function (e) {
+            const choice = dialog.showMessageBoxSync(win, {
+                type: "question",
+                buttons: ["Yes", "Cancel"],
+                title: "Confrim Quit",
+                message: "Are you sure you want to quit? Quitting will kill all running processes.",
+            });
+            if (choice === 1) {
+                e.preventDefault();
+            }
+            else {
+                try {
+                    logWin.webContents.send("savelogs", []);
+                    logWin.close();
+                }
+                catch (error) {
+                    // do nothing window was closed
+                }
+            }
+        });
+        //checkForUpdates();
+        win.webContents.once("did-finish-load", () => {
+            // Make a directory to house enviornment, settings, etc.yarn
+            checkLocalDir();
+            // Setup python for running the pipeline
+            //setupPython(win)
+            setupMamba(win)
+                .then((installed) => {
+                    // If we just installed python, we need to continue the complete
+                    // setup of the enviornment
+                    if (installed) {
+                        //setupEnvironment(win);
+                        setupMambaEnv(win);
+                    }
+                    else {
+                        // Otherwise, we can just update the dependencies
+                        updatePythonDependencies(win).then(() => {
+                            // Check for new patch
+                            // Check if any directories are missing
+                            fixMissingDirectories(win).then(() => {
+                                win.loadFile("pages/index.html");
+                            });
+                        });
+                    }
+                })
+                .catch((error) => {
+                    // Python install failed
+                    console.log(error);
+                });
+        });
     });
 });
 // Files

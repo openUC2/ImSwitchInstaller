@@ -2,6 +2,28 @@
 
 ![Licence](https://img.shields.io/github/license/Ileriayo/markdown-badges?style=for-the-badge) ![Electron.js](https://img.shields.io/badge/Electron-191970?style=for-the-badge&logo=Electron&logoColor=white) ![Windows](https://img.shields.io/badge/Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white) ![Mac OS](https://img.shields.io/badge/mac%20os-000000?style=for-the-badge&logo=macos&logoColor=F0F0F0) ![Linux](https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black)
 
+# Debugging 
+
+## Python
+
+### Windows 
+
+It installs Mambaforge into the following folder,
+```
+C:\Users\UCadmin2\ImSwitch\miniforge\condabin
+```
+
+The python executable:
+```
+C:\\Users\\UCadmin2\\ImSwitch\\miniforge\\python.exe
+```
+
+The ImSwitch package location
+```
+C:\\Users\\UCadmin2\\ImSwitch\\miniforge\\lib\\site-packages\\imswitch\\__init__.py'
+```
+
+
 # Introduction
 *TBA*
 

@@ -98,7 +98,7 @@ const serverFetchTimedOut = (url, options = {}, time = 1000) => {
 async function checkForUpdates() {
     try {
   
-      const GITHUB_API_RELEASES = 'https://api.github.com/repos/openuc2/imswitch/releases/latest';
+      const GITHUB_API_RELEASES = 'https://api.github.com/repos/openuc2/imswitchinstaller/releases/latest';
       const CURRENT_VERSION_TAG = 'current-version-tag'; // Define your current version tag
   
       const response = await axios.get(GITHUB_API_RELEASES);
@@ -114,7 +114,7 @@ async function checkForUpdates() {
         const userResponse = await dialog.showMessageBox({
           type: 'info',
           title: 'Update Available',
-          message: 'A new version of the application is available.',
+          message: 'A new version of the ImSwitch Installer is available.',
           detail: `The latest version is ${latestVersionTag}. Would you like to download it?`,
           buttons: ['Yes', 'No'],
           defaultId: 0,
@@ -621,7 +621,7 @@ function setupMambaEnv(win) {
     miniforgePath = path.join(homeDir, "miniforge");
     mambaPath = path.join(miniforgePath, "condabin", "mamba");
     pipPath = path.join(miniforgePath, "Scripts", "pip"); // Adjust for Windows if necessary
-    imswitchPath = path.join(miniforgePath, "site-packages", "imswitch");
+    imswitchPath = path.join(miniforgePath, "Lib", "site-packages", "imswitch");
   } else {
     miniforgePath = path.join(homeDir, "miniforge");
     mambaPath = path.join(miniforgePath, "bin", "mamba");
@@ -913,7 +913,7 @@ ipcMain.on("updateImSwitch", function () {
   var miniforgePath = path.join(homeDir, "miniforge");
   var pipPath = path.join(miniforgePath, "bin", "pip");
   if (os.platform == "win32") {
-    pipPath = path.join(miniforgePath, "condabin", "pip");
+    pipPath = path.join(miniforgePath, "Scripts", "pip"); // Adjust for Windows if necessary
   }
   /*
         Install UC2-REST and ImSwitch from github master
@@ -921,21 +921,29 @@ ipcMain.on("updateImSwitch", function () {
   if (fs.existsSync(path.join(miniforgePath))) {
     win.webContents.send("updateStatus", "Updating ImSwitch from Source...");
     runCommand(
-      `${pipPath}`,
-      [`install`, `https://github.com/openUC2/UC2-REST/archive/master.zip`],
-      win
-    )
-      //runCommand(`${mambaPath} create -n ${envName} -y`)
-      .then(() => {
-        win.webContents.send(
-          "updateStatus",
-          "Installing UC2-ImSwitch packages with pip. This may take a while..."
-        );
-        return runCommand(
-          `${pipPath}`,
-          [`install`, `https://github.com/openUC2/ImSwitch/archive/master.zip`],
-          win
-        );
-      });
+        `${pipPath}`,
+        [`install`, `https://github.com/openUC2/UC2-REST/archive/master.zip`],
+        win
+      )
+        .then(() => {
+          win.webContents.send(
+            "updateStatus",
+            "Installing UC2-ImSwitch packages with pip. This may take a while..."
+          );
+          return runCommand(
+            `${pipPath}`,
+            [`install`, `https://github.com/openUC2/ImSwitch/archive/master.zip`],
+            win
+          );
+        })
+        .then(() => {
+          win.webContents.send("updateStatus", "Setup complete!");
+          win.loadFile("pages/index.html");
+        })
+        .catch((error) => {
+          console.log("An error occurred during setup:", error);
+          win.webContents.send("updateStatus", "An error occurred during setup.");
+        });
+  
   }
 });

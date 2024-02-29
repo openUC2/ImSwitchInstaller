@@ -156,28 +156,33 @@ const TIMEOUT = 30000;
 //https://stackoverflow.com/questions/11944932/how-to-download-a-file-with-node-js-without-using-third-party-libraries
 function downloadFile(url, dest) {
   const uri = new URL(url);
+  console.log("Download file: ", uri.pathname);
   if (!dest) {
     dest = basename(uri.pathname);
   }
   const pkg = url.toLowerCase().startsWith("https:") ? https : http;
 
   return new Promise((resolve, reject) => {
+    console.log("Downloading: ", url);
     const request = pkg.get(uri.href).on("response", (res) => {
       if (res.statusCode === 200) {
+        console.log("Status 200")
         const file = fs.createWriteStream(dest, { flags: "wx" });
         res
           .on("end", () => {
             file.end();
-            // console.log(`${uri.pathname} downloaded to: ${path}`)
+            console.log(`${uri.pathname} downloaded to: ${dest}`);
             resolve();
           })
           .on("error", (err) => {
             file.destroy();
             fs.unlink(dest, () => reject(err));
+            log.error(err);
           })
           .pipe(file);
       } else if (res.statusCode === 302 || res.statusCode === 301) {
         // Recursively follow redirects, only a 200 will resolve.
+        console.log("Redirecting to: ", res.headers.location);
         downloadFile(res.headers.location, dest).then(() => resolve());
       } else {
         reject(
@@ -220,8 +225,10 @@ function setupMamba(win) {
 
     if (!fs.existsSync(path.join(homeDir, "miniforge"))) {
       win.webContents.send("updateStatus", "Setting up Mamba via Miniforge...");
+      console.log("Setting up Mamba via Miniforge...");
       downloadFile(miniforgeURL, path.join(homeDir, miniforgeScriptName), win)
         .then(() => {
+          console.log("Setting up Mamba via Miniforge...");
           win.webContents.send(
             "updateStatus",
             "Installing Mamba locally in: " + homeDir
@@ -881,9 +888,23 @@ ipcMain.on("openFileDialog", function (event, data) {
 // downloadHIK
 ipcMain.on("downloadHIK", function (event, data) {
   console.log("Downloading HIK");
-  const hikURL =
-    "https://www.hikrobotics.com/cn2/source/support/software/MVS_STD_4.3.0_23.1225.zip";
-  shell.openExternal(hikURL);
+  // if windows  we need to download the windows version
+  if (os.platform == "win32") {
+    const hikURL =
+      "https://www.hikrobotics.com/cn2/source/support/software/MVS_STD_4.3.0_23.1225.zip";
+    shell.openExternal(hikURL);
+  }
+  // if linux we need to download the linux version
+  if (os.platform == "linux") {
+    const hikURL = "https://www.hikrobotics.com/cn2/source/support/software/MVS_STD_4.3.0_23.1225.zip";
+    shell.openExternal(hikURL);
+  }
+  // if mac we need to download the mac version
+  if (os.platform == "darwin") {
+    const hikURL = "https://www.hikrobotics.com/en2/Hikrobotics/Machine%20Vision/02%20Support/01%20Software/MVS_STD_GML_V2.0.0_221024.zip";
+    shell.openExternal(hikURL);
+  }
+  
 });
 
 // downloadDaheng

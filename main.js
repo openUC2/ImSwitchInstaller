@@ -215,10 +215,17 @@ function getVersion() {
 //    const osxURL = "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
 function setupMamba(win) {
   return new Promise((resolve, reject) => {
+    let miniforgeURL = "";
+    let miniforgeScriptName = "";
+    if (os.platform == "darwin" && os.arch == "arm64") {
     let miniforgeScriptName = `Miniforge3-${os.platform()}-${os.arch()}.sh`;
-    let miniforgeURL = `https://github.com/conda-forge/miniforge/releases/latest/download/${miniforgeScriptName}`;
-
-    if (os.platform == "win32") {
+    miniforgeURL = `https://github.com/conda-forge/miniforge/releases/latest/download/${miniforgeScriptName}`;
+    }
+    else if (os.platform == "darwin" && os.arch == "x64") {
+      miniforgeScriptName = `Mambaforge-23.11.0-0-MacOSX-x86_64.sh`;
+      miniforgeURL = "https://github.com/conda-forge/miniforge/releases/download/23.11.0-0/Mambaforge-23.11.0-0-MacOSX-x86_64.sh";
+    }
+    else if (os.platform == "win32") {
       miniforgeScriptName = `Miniforge3-Windows-x86_64.exe`;
       miniforgeURL = `https://github.com/conda-forge/miniforge/releases/latest/download/${miniforgeScriptName}`;
     }

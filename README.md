@@ -9,6 +9,7 @@ The ImSwitch Installer is an Electron-based application designed to streamline t
 
 ## Installation Process
 
+The following youtube video shows you how to install ImSwitch using the installer. 
 [![IMAGE ALT TEXT HERE](https://i3.ytimg.com/vi/N4P1sH2E9RU/maxresdefault.jpg)](https://www.youtube.com/watch?v=N4P1sH2E9RU?si=jyhAzLshAbg26YHu)
 
 ## Features

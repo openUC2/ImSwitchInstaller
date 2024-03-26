@@ -73,6 +73,7 @@ npm start
 - **Windows Installation Path:** `C:\Users\UCadmin2\ImSwitch\miniforge\condabin`
 - **Python Executable:** `C:\\Users\\UCadmin2\\ImSwitch\\miniforge\\python.exe`
 - **ImSwitch Package Location:** `C:\\Users\\UCadmin2\\ImSwitch\\miniforge\\lib\\site-packages\\imswitch\\__init__.py'`
+- **Conda Environment** `/Users/ImSwitch/miniforge/condabin/mamba install devbio-napari -c conda-forge`
 
 # Disclaimer
 

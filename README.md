@@ -7,6 +7,11 @@
 
 The ImSwitch Installer is an Electron-based application designed to streamline the installation process of the ImSwitch environment. It automates the download and setup of a Mamba environment along with all necessary dependencies from GitHub via pip. This tool simplifies the installation process, reducing it to a few clicks and eliminating the need for executing multiple complex commands.
 
+## Installation Process
+
+The following youtube video shows you how to install ImSwitch using the installer. 
+[![IMAGE ALT TEXT HERE](https://i3.ytimg.com/vi/N4P1sH2E9RU/maxresdefault.jpg)](https://www.youtube.com/watch?v=N4P1sH2E9RU?si=jyhAzLshAbg26YHu)
+
 ## Features
 
 - **Easy Installation:** Downloads and installs all necessary dependencies automatically.
@@ -68,6 +73,7 @@ npm start
 - **Windows Installation Path:** `C:\Users\UCadmin2\ImSwitch\miniforge\condabin`
 - **Python Executable:** `C:\\Users\\UCadmin2\\ImSwitch\\miniforge\\python.exe`
 - **ImSwitch Package Location:** `C:\\Users\\UCadmin2\\ImSwitch\\miniforge\\lib\\site-packages\\imswitch\\__init__.py'`
+- **Conda Environment** `/Users/ImSwitch/miniforge/condabin/mamba install devbio-napari -c conda-forge`
 
 # Disclaimer
 

@@ -50,10 +50,8 @@ const semver = require("semver");
 const serverFetch = require("node-fetch");
 const { spawn } = require("child_process");
 const axios = require("axios");
-const remoteMain = require('@electron/remote/main');
-
-
-
+const remoteMain = require("@electron/remote/main");
+const ws = require('windows-shortcuts');
 
 var appDir = app.getAppPath();
 var win = null;
@@ -96,43 +94,46 @@ const serverFetchTimedOut = (url, options = {}, time = 1000) => {
 };
 
 async function checkForUpdates() {
-    try {
-  
-      const GITHUB_API_RELEASES = 'https://api.github.com/repos/openuc2/imswitchinstaller/releases/latest';
-      const CURRENT_VERSION_TAG = 'current-version-tag'; // Define your current version tag
-  
-      const response = await axios.get(GITHUB_API_RELEASES);
-  
-      if (response.status !== 200) {
-        throw new Error(`GitHub API response status: ${response.status}`);
-      }
-  
-      const data = response.data;
-      const latestVersionTag = data.tag_name;
-  
-      //if (semver.valid(latestVersionTag) && semver.gt(latestVersionTag, CURRENT_VERSION_TAG)) {
-        const userResponse = await dialog.showMessageBox({
-          type: 'info',
-          title: 'Update Available',
-          message: 'A new version of the ImSwitch Installer is available.',
-          detail: `The latest version is ${latestVersionTag}. Would you like to download it?`,
-          buttons: ['Yes', 'No'],
-          defaultId: 0,
-          cancelId: 1,
-        });
-  
-        if (userResponse.response === 0) {
-          shell.openExternal(data.html_url); // URL to the latest release page
-        }
-      /*} else {
+  try {
+    const GITHUB_API_RELEASES =
+      "https://api.github.com/repos/openuc2/imswitchinstaller/releases/latest";
+    const CURRENT_VERSION_TAG = "current-version-tag"; // Define your current version tag
+
+    const response = await axios.get(GITHUB_API_RELEASES);
+
+    if (response.status !== 200) {
+      throw new Error(`GitHub API response status: ${response.status}`);
+    }
+
+    const data = response.data;
+    const latestVersionTag = data.tag_name;
+
+    //if (semver.valid(latestVersionTag) && semver.gt(latestVersionTag, CURRENT_VERSION_TAG)) {
+    const userResponse = await dialog.showMessageBox({
+      type: "info",
+      title: "Update Available",
+      message: "A new version of the ImSwitch Installer is available.",
+      detail: `The latest version is ${latestVersionTag}. Would you like to download it?`,
+      buttons: ["Yes", "No"],
+      defaultId: 0,
+      cancelId: 1,
+    });
+
+    if (userResponse.response === 0) {
+      shell.openExternal(data.html_url); // URL to the latest release page
+    }
+    /*} else {
         console.log('No updates available.');
       }*/
-    } catch (error) {
-      console.error('Failed to check for updates:', error);
-      dialog.showErrorBox('Update Check Failed', 'There was an error checking for updates. Please try again later.');
-    }
+  } catch (error) {
+    console.error("Failed to check for updates:", error);
+    dialog.showErrorBox(
+      "Update Check Failed",
+      "There was an error checking for updates. Please try again later."
+    );
   }
-  
+}
+
 // Promise version of file moving
 function move(o, t) {
   return new Promise((resolve, reject) => {
@@ -166,7 +167,7 @@ function downloadFile(url, dest) {
     console.log("Downloading: ", url);
     const request = pkg.get(uri.href).on("response", (res) => {
       if (res.statusCode === 200) {
-        console.log("Status 200")
+        console.log("Status 200");
         const file = fs.createWriteStream(dest, { flags: "wx" });
         res
           .on("end", () => {
@@ -218,14 +219,13 @@ function setupMamba(win) {
     let miniforgeURL = "";
     let miniforgeScriptName = "";
     if (os.platform == "darwin" && os.arch == "arm64") {
-    let miniforgeScriptName = `Miniforge3-${os.platform()}-${os.arch()}.sh`;
-    miniforgeURL = `https://github.com/conda-forge/miniforge/releases/latest/download/${miniforgeScriptName}`;
-    }
-    else if (os.platform == "darwin" && os.arch == "x64") {
+      let miniforgeScriptName = `Miniforge3-${os.platform()}-${os.arch()}.sh`;
+      miniforgeURL = `https://github.com/conda-forge/miniforge/releases/latest/download/${miniforgeScriptName}`;
+    } else if (os.platform == "darwin" && os.arch == "x64") {
       miniforgeScriptName = `Mambaforge-23.11.0-0-MacOSX-x86_64.sh`;
-      miniforgeURL = "https://github.com/conda-forge/miniforge/releases/download/23.11.0-0/Mambaforge-23.11.0-0-MacOSX-x86_64.sh";
-    }
-    else if (os.platform == "win32") {
+      miniforgeURL =
+        "https://github.com/conda-forge/miniforge/releases/download/23.11.0-0/Mambaforge-23.11.0-0-MacOSX-x86_64.sh";
+    } else if (os.platform == "win32") {
       miniforgeScriptName = `Miniforge3-Windows-x86_64.exe`;
       miniforgeURL = `https://github.com/conda-forge/miniforge/releases/latest/download/${miniforgeScriptName}`;
     }
@@ -629,23 +629,41 @@ function downloadResources(win, fresh) {
 
 function setupMambaEnv(win) {
   const envName = "imswitch";
-  var miniforgePath, mambaPath, pipPath, imswitchPath;
+  var miniforgePath, mambaPath, pipPath, imswitchPath, pythonPath;
 
   if (os.platform == "win32") {
     miniforgePath = path.join(homeDir, "miniforge");
     mambaPath = path.join(miniforgePath, "condabin", "mamba");
     pipPath = path.join(miniforgePath, "Scripts", "pip"); // Adjust for Windows if necessary
+    pythonPath = path.join(miniforgePath, "python");
     imswitchPath = path.join(miniforgePath, "Lib", "site-packages", "imswitch");
   } else {
     miniforgePath = path.join(homeDir, "miniforge");
     mambaPath = path.join(miniforgePath, "bin", "mamba");
     pipPath = path.join(miniforgePath, "bin", "pip");
+    pythonPath = path.join(miniforgePath, "bin", "python");
     imswitchPath = path.join(miniforgePath, "site-packages", "imswitch");
   }
   /*
+    Install git via mamba
+    */
+  win.webContents.send("updateStatus", "Installing git with mamba...");
+  runCommand(`${mambaPath}`, [`install`, `git`, `-y`], win)
+    .then(() => {
+      win.webContents.send("updateStatus", "Installing git via mamba...");
+      return runCommand(
+        `${mambaPath}`,
+        [
+          `install`,
+          `git`,
+        ],
+        win
+      );
+    })
+  /*
     Install UC2-REST and ImSwitch from github master
     */
-  if (
+    if (
     !fs.existsSync(path.join(miniforgePath)) ||
     !fs.existsSync(path.join(imswitchPath))
   ) {
@@ -672,7 +690,44 @@ function setupMambaEnv(win) {
           [`install`, `https://github.com/openUC2/ImSwitch/archive/master.zip`],
           win
         );
-      })
+      }).then(() => {
+        // create an icon
+        // for windows 
+        if (os.platform == "win32") {
+          const iconPath = path.join(homeDir, "build", "icon.ico");
+          const args = "-m imswitch";
+          const shortcutPath = path.join(
+            require("os").homedir(),
+            "Desktop",
+            "ImSwitchUC2.lnk"
+          );
+          ws.create(shortcutPath, {
+            pythonPath,
+            args,
+            icon: iconPath,
+          }, (err) => {
+            if (err) {
+                console.error("Failed to create shortcut:", err);
+            } else {
+                console.log("Shortcut created successfully!");
+            }
+        });
+        }
+        else if (os.platform == "darwin") {
+          // TODO: Not working yet
+          const appPath = '/Applications/ImSwitch.app'; // Path to your application
+          const desktopPath = path.join(require('os').homedir(), 'Desktop');
+          const shortcutCommand = `osascript -e 'tell application "Finder" to make alias file to POSIX file "${appPath}" at POSIX file "${desktopPath}"'`;
+
+          exec(shortcutCommand, (error, stdout, stderr) => {
+              if (error) {
+                  console.error(`exec error: ${error}`);
+                  return;
+              }
+              console.log('Shortcut created on desktop');
+          });
+      }
+    })
       .then(() => {
         win.webContents.send("updateStatus", "Setup complete!");
         win.loadFile("pages/index.html");
@@ -768,7 +823,7 @@ function createWindow() {
     height: 750,
     resizable: true,
     autoHideMenuBar: true,
-    webPreferences: { nodeIntegration: true, contextIsolation: false},
+    webPreferences: { nodeIntegration: true, contextIsolation: false },
   });
   remoteMain.enable(win.webContents);
   // Start with the load screen
@@ -903,15 +958,16 @@ ipcMain.on("downloadHIK", function (event, data) {
   }
   // if linux we need to download the linux version
   if (os.platform == "linux") {
-    const hikURL = "https://www.hikrobotics.com/cn2/source/support/software/MVS_STD_4.3.0_23.1225.zip";
+    const hikURL =
+      "https://www.hikrobotics.com/cn2/source/support/software/MVS_STD_4.3.0_23.1225.zip";
     shell.openExternal(hikURL);
   }
   // if mac we need to download the mac version
   if (os.platform == "darwin") {
-    const hikURL = "https://www.hikrobotics.com/en2/Hikrobotics/Machine%20Vision/02%20Support/01%20Software/MVS_STD_GML_V2.0.0_221024.zip";
+    const hikURL =
+      "https://www.hikrobotics.com/en2/Hikrobotics/Machine%20Vision/02%20Support/01%20Software/MVS_STD_GML_V2.0.0_221024.zip";
     shell.openExternal(hikURL);
   }
-  
 });
 
 // downloadDaheng
@@ -949,29 +1005,42 @@ ipcMain.on("updateImSwitch", function () {
   if (fs.existsSync(path.join(miniforgePath))) {
     win.webContents.send("updateStatus", "Updating ImSwitch from Source...");
     runCommand(
-        `${pipPath}`,
-        [`install`, `https://github.com/openUC2/UC2-REST/archive/master.zip`],
-        win
-      )
-        .then(() => {
-          win.webContents.send(
-            "updateStatus",
-            "Installing UC2-ImSwitch packages with pip. This may take a while..."
-          );
-          return runCommand(
-            `${pipPath}`,
-            [`install`, `https://github.com/openUC2/ImSwitch/archive/master.zip`],
-            win
-          );
-        })
-        .then(() => {
-          win.webContents.send("updateStatus", "Setup complete!");
-          win.loadFile("pages/index.html");
-        })
-        .catch((error) => {
-          console.log("An error occurred during setup:", error);
-          win.webContents.send("updateStatus", "An error occurred during setup.");
-        });
-  
+      `${pipPath}`,
+      [`install`, `https://github.com/openUC2/UC2-REST/archive/master.zip`],
+      win
+    )
+      .then(() => {
+        win.webContents.send(
+          "updateStatus",
+          "Installing NanoImagingPack packages with pip. This may take a while..."
+        );
+        return runCommand(
+          `${pipPath}`,
+          [
+            `install`,
+            `https://gitlab.com/bionanoimaging/nanoimagingpack/-/archive/master/nanoimagingpack-master.zip`,
+          ],
+          win
+        );
+      })
+      .then(() => {
+        win.webContents.send(
+          "updateStatus",
+          "Installing UC2-ImSwitch packages with pip. This may take a while..."
+        );
+        return runCommand(
+          `${pipPath}`,
+          [`install`, `https://github.com/openUC2/ImSwitch/archive/master.zip`],
+          win
+        );
+      })
+      .then(() => {
+        win.webContents.send("updateStatus", "Setup complete!");
+        win.loadFile("pages/index.html");
+      })
+      .catch((error) => {
+        console.log("An error occurred during setup:", error);
+        win.webContents.send("updateStatus", "An error occurred during setup.");
+      });
   }
 });

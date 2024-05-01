@@ -1,17 +1,3 @@
-name: Build and Package Electron App
-
-env:
-  GH_TOKEN: ${{ secrets.GH_TOKEN }}
-
-on:
-  workflow_dispatch:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
-
 jobs:
   version-bump:
     runs-on: ubuntu-latest
@@ -19,17 +5,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Ensure all tags are fetched
+          fetch-depth: 0
       - name: Bump version and push tag
-        uses:  'phips28/gh-action-bump-version@master'      
+        uses: phips28/gh-action-bump-version@master
         with:
           github-token: ${{ secrets.GH_TOKEN }}
           tag-prefix: ''
-          minor: true # Change this to 'true' for minor, 'false' for patch updates
+          minor: true
 
   build:
     needs: version-bump
-    runs-on: windows-latest # Focused on Windows to generate .exe
+    runs-on: windows-latest
     strategy:
       matrix:
         node-version: [18.x]
@@ -39,31 +25,26 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Build and Package
-        run: npm run dist --publish=never
-
-      - name: Upload EXE Artifact
-        uses: actions/upload-artifact@v2
+      - run: npm install
+      - run: npm run dist --publish=never
+      - uses: actions/upload-artifact@v2
         with:
-          name: windows-exe-artifact  
+          name: windows-exe-artifact
           path: dist/*.exe
-          
+
   release:
     needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/download-artifact@v3
         with:
-          name: windows-exe-artifact  # This should match the name used in the upload step
-          path: dist      
-      - name: Get the version tag from the current commit
-        id: vars
-        run: echo "RELEASE_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
+          name: windows-exe-artifact
+          path: dist
+      - run: git fetch --tags
+      - run: echo "RELEASE_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:

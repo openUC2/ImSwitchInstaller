@@ -13,29 +13,54 @@ on:
       - main
 
 jobs:
+  version-bump:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bump version and push tag
+        uses: phips28/gh-action-bump-version@v8.x
+        with:
+          github-token: ${{ env.GH_TOKEN }}
+          tag-prefix: ''
+          minor: true # Change this to 'true' for minor, 'false' for patch updates
+
   build:
-    runs-on: ${{ matrix.os }}
+    needs: version-bump
+    runs-on: windows-latest # Focused on Windows to generate .exe
     strategy:
       matrix:
-        os: [windows-latest, macos-latest]
         node-version: [18.x]
-
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
 
-    - name: Set up Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
+      - name: Install dependencies
+        run: npm install
 
-    - name: Install dependencies
-      run: npm install
+      - name: Build and Package
+        run: npm run dist --publish=never
 
-    - name: Build and Package
-      run: npm run dist --publish=never
+      - name: Upload EXE Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ runner.os }}-exe
+          path: dist/*.exe
 
-    - name: Upload Artifacts
-      uses: actions/upload-artifact@v2
-      with:
-        name: ${{ runner.os }}-artifacts
-        path: dist/*
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v3
+        with:
+          name: Windows-latest-exe
+          path: dist
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/*.exe
+          token: ${{ secrets.GH_TOKEN }}

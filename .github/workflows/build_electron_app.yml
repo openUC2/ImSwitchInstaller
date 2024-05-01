@@ -61,8 +61,12 @@ jobs:
         with:
           name: windows-exe-artifact  # This should match the name used in the upload step
           path: dist      
+      - name: Get the version tag from the current commit
+        id: vars
+        run: echo "RELEASE_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           files: dist/*.exe
+          tag_name: ${{ env.RELEASE_TAG }}
           token: ${{ secrets.GH_TOKEN }}

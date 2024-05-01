@@ -51,7 +51,8 @@ const serverFetch = require("node-fetch");
 const { spawn } = require("child_process");
 const axios = require("axios");
 const remoteMain = require("@electron/remote/main");
-const ws = require('windows-shortcuts');
+const ws = require("windows-shortcuts");
+const fsExt = require('fs-ext');
 
 var appDir = app.getAppPath();
 var win = null;
@@ -163,6 +164,12 @@ function downloadFile(url, dest) {
   }
   const pkg = url.toLowerCase().startsWith("https:") ? https : http;
 
+  // check if file exists, if so, return a promise that resolves immediately
+  if (fs.existsSync && fs.existsSync(dest)) {
+    console.log(`${dest} already exists`);
+    return Promise.resolve();
+  }
+
   return new Promise((resolve, reject) => {
     console.log("Downloading: ", url);
     const request = pkg.get(uri.href).on("response", (res) => {
@@ -247,23 +254,40 @@ function setupMamba(win) {
             // Silent installation for Windows
             installCommand = `${scriptPath} /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /S /D=${homeDir}\\miniforge`;
           }
+          const fd = fs.openSync(scriptPath, "r+");
+          fsExt.flock(fd, "exnb", (err) => {
+            if (err) {
+              if (err.code === "EWOULDBLOCK") {
+                console.error(
+                  "The file will be used in a different process already?."
+                );
+                return;
+              }
+              throw err;
+            }
 
-          exec(installCommand, (error, stdout, stderr) => {
-            if (error) {
+            exec(installCommand, (error, stdout, stderr) => {
+              if (error) {
+                win.webContents.send(
+                  "updateStatus",
+                  "Error in installing Miniforge."
+                );
+                console.error(`exec error: ${error}`);
+                console.error(stderr);
+                return reject(error);
+              }
               win.webContents.send(
                 "updateStatus",
-                "Error in installing Miniforge."
+                "Miniforge installed successfully."
               );
-              console.error(`exec error: ${error}`);
-              console.error(stderr);
-              return reject(error);
-            }
-            win.webContents.send(
-              "updateStatus",
-              "Miniforge installed successfully."
-            );
-            console.log(stdout);
-            resolve(true);
+              console.log(stdout);
+              resolve(true);
+            });
+
+            fsExt.flock(fd, "un", (err) => {
+              if (err) throw err;
+              fs.closeSync(fd);
+            });
           });
         })
         .catch((error) => {
@@ -648,22 +672,14 @@ function setupMambaEnv(win) {
     Install git via mamba
     */
   win.webContents.send("updateStatus", "Installing git with mamba...");
-  runCommand(`${mambaPath}`, [`install`, `git`, `-y`], win)
-    .then(() => {
-      win.webContents.send("updateStatus", "Installing git via mamba...");
-      return runCommand(
-        `${mambaPath}`,
-        [
-          `install`,
-          `git`,
-        ],
-        win
-      );
-    })
+  runCommand(`${mambaPath}`, [`install`, `git`, `-y`], win).then(() => {
+    win.webContents.send("updateStatus", "Installing git via mamba...");
+    return runCommand(`${mambaPath}`, [`install`, `git`], win);
+  });
   /*
     Install UC2-REST and ImSwitch from github master
     */
-    if (
+  if (
     !fs.existsSync(path.join(miniforgePath)) ||
     !fs.existsSync(path.join(imswitchPath))
   ) {
@@ -690,9 +706,10 @@ function setupMambaEnv(win) {
           [`install`, `https://github.com/openUC2/ImSwitch/archive/master.zip`],
           win
         );
-      }).then(() => {
+      })
+      .then(() => {
         // create an icon
-        // for windows 
+        // for windows
         if (os.platform == "win32") {
           const iconPath = path.join(homeDir, "build", "icon.ico");
           const args = "-m imswitch";
@@ -701,33 +718,36 @@ function setupMambaEnv(win) {
             "Desktop",
             "ImSwitchUC2.lnk"
           );
-          ws.create(shortcutPath, {
-            pythonPath,
-            args,
-            icon: iconPath,
-          }, (err) => {
-            if (err) {
+          ws.create(
+            shortcutPath,
+            {
+              pythonPath,
+              args,
+              icon: iconPath,
+            },
+            (err) => {
+              if (err) {
                 console.error("Failed to create shortcut:", err);
-            } else {
+              } else {
                 console.log("Shortcut created successfully!");
+              }
             }
-        });
-        }
-        else if (os.platform == "darwin") {
+          );
+        } else if (os.platform == "darwin") {
           // TODO: Not working yet
-          const appPath = '/Applications/ImSwitch.app'; // Path to your application
-          const desktopPath = path.join(require('os').homedir(), 'Desktop');
+          const appPath = "/Applications/ImSwitch.app"; // Path to your application
+          const desktopPath = path.join(require("os").homedir(), "Desktop");
           const shortcutCommand = `osascript -e 'tell application "Finder" to make alias file to POSIX file "${appPath}" at POSIX file "${desktopPath}"'`;
 
           exec(shortcutCommand, (error, stdout, stderr) => {
-              if (error) {
-                  console.error(`exec error: ${error}`);
-                  return;
-              }
-              console.log('Shortcut created on desktop');
+            if (error) {
+              console.error(`exec error: ${error}`);
+              return;
+            }
+            console.log("Shortcut created on desktop");
           });
-      }
-    })
+        }
+      })
       .then(() => {
         win.webContents.send("updateStatus", "Setup complete!");
         win.loadFile("pages/index.html");

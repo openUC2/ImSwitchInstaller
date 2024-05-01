@@ -49,9 +49,9 @@ jobs:
       - name: Upload EXE Artifact
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ runner.os }}-exe
+          name: windows-exe-artifact  
           path: dist/*.exe
-
+          
   release:
     needs: build
     runs-on: ubuntu-latest
@@ -59,8 +59,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v3
         with:
-          name: Windows-latest-exe
-          path: dist
+          name: windows-exe-artifact  # This should match the name used in the upload step
+          path: dist      
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:

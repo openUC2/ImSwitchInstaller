@@ -1,7 +1,7 @@
 {
   "name": "ImSwitch",
   "description": "An acquisition and control software for microscopy",
-  "version": "1.2.14",
+  "version": "1.2.15",
   "main": "main.js",
   "repository": "openUC2/imswitchinstaller",
   "author": "Bene <benedictdied@gmail.com>",

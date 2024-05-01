@@ -12,6 +12,17 @@ on:
     branches:
       - main
 
+- name:  'Automated Version Bump'
+  uses:  'phips28/gh-action-bump-version@master'
+  env:
+    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  with:
+    minor-wording:  'add,Adds,new'
+    major-wording:  'MAJOR,cut-major'
+    patch-wording:  'patch,fixes'     # Providing patch-wording will override commits
+                                      # defaulting to a patch bump.
+    rc-wording:     'RELEASE,alpha'
+
 jobs:
   version-bump:
     runs-on: ubuntu-latest
@@ -21,7 +32,7 @@ jobs:
         with:
           fetch-depth: 0 # Ensure all tags are fetched
       - name: Bump version and push tag
-        uses: phips28/gh-action-bump-version@v7.0.0
+        uses: phips28/gh-action-bump-version
         with:
           github-token: ${{ secrets.GH_TOKEN }}
           tag-prefix: ''

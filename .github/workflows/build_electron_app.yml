@@ -18,10 +18,12 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
-      - name: Bump version and push tag
-        uses: phips28/gh-action-bump-version@v8.x
         with:
-          github-token: ${{ env.GH_TOKEN }}
+          fetch-depth: 0 # Ensure all tags are fetched
+      - name: Bump version and push tag
+        uses: phips28/gh-action-bump-version@v7.0.0
+        with:
+          github-token: ${{ secrets.GH_TOKEN }}
           tag-prefix: ''
           minor: true # Change this to 'true' for minor, 'false' for patch updates
 

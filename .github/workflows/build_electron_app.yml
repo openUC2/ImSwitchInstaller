@@ -13,29 +13,55 @@ on:
       - main
 
 jobs:
+  version-bump:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Bump version and push tag
+        uses: phips28/gh-action-bump-version@master
+        with:
+          github-token: ${{ secrets.GH_TOKEN }}
+          tag-prefix: ''
+          minor: true
+
   build:
-    runs-on: ${{ matrix.os }}
+    needs: version-bump
+    runs-on: windows-latest
     strategy:
       matrix:
-        os: [windows-latest, macos-latest]
         node-version: [18.x]
-
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: npm install
+      - run: npm run dist --publish=never
+      - uses: actions/upload-artifact@v2
+        with:
+          name: windows-exe-artifact
+          path: dist/*.exe
 
-    - name: Set up Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-
-    - name: Install dependencies
-      run: npm install
-
-    - name: Build and Package
-      run: npm run dist --publish=never
-
-    - name: Upload Artifacts
-      uses: actions/upload-artifact@v2
-      with:
-        name: ${{ runner.os }}-artifacts
-        path: dist/*
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v3
+        with:
+          name: windows-exe-artifact
+          path: dist
+      - run: git fetch --tags
+      - run: echo "RELEASE_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/*.exe
+          tag_name: ${{ env.RELEASE_TAG }}
+          token: ${{ secrets.GH_TOKEN }}

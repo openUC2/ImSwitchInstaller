@@ -21,7 +21,7 @@ jobs:
         with:
           fetch-depth: 0 # Ensure all tags are fetched
       - name: Bump version and push tag
-        uses: phips28/gh-action-bump-version
+        uses:  'phips28/gh-action-bump-version@master'      
         with:
           github-token: ${{ secrets.GH_TOKEN }}
           tag-prefix: ''

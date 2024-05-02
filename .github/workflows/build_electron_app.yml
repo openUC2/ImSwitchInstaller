@@ -46,7 +46,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: ${{ runner.os }}-artifact
-          path: dist/*${{ matrix.os == 'windows-latest' ? '.exe' : '.dmg' }}
+          path: dist/${{ matrix.os == 'windows-latest' && '**/*.exe' || '**/*.dmg' }}
 
   release:
     needs: build

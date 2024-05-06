@@ -27,7 +27,7 @@ jobs:
           tag-prefix: ''
           minor: true # Change this to 'true' for minor, 'false' for patch updates
 
-  build:
+  build-and-release:
     needs: version-bump
     runs-on: ${{ matrix.os }}
     strategy:
@@ -48,34 +48,9 @@ jobs:
         run: npm install
       - name: Build and Package
         run: npm run dist --publish=never
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: ${{ runner.os }}-artifact
-          path: dist/${{ matrix.os == 'windows-latest' && '**/*.exe' || '**/*.dmg' }}
-
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Download Windows Artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: windows-artifact
-          path: dist
-      - name: Download macOS Artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: macos-artifact
-          path: dist
-      - run: git fetch --tags
-      - run: echo "RELEASE_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: dist/*
-          tag_name: ${{ env.RELEASE_TAG }}
+          files: dist/${{ matrix.os == 'windows-latest' && '**/*.exe' || '**/*.dmg' }}
+          tag_name: ${{ github.ref_name }}
           token: ${{ secrets.GH_TOKEN }}

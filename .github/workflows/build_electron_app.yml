@@ -64,12 +64,12 @@ jobs:
       - name: Download Windows Artifact
         uses: actions/download-artifact@v3
         with:
-          name: windows-latest-artifact
+          name: windows-artifact
           path: dist
       - name: Download macOS Artifact
         uses: actions/download-artifact@v3
         with:
-          name: macos-latest-artifact
+          name: macos-artifact
           path: dist
       - run: git fetch --tags
       - run: echo "RELEASE_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV

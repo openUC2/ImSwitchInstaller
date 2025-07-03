@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="../../../css/style.css">
+    <link rel="stylesheet" href="../../node_modules/@fortawesome/fontawesome-free/css/all.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'  https://cdn.jsdelivr.net/; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net/; font-src 'self' https://fonts.gstatic.com;">
+    <meta http-equiv="X-Content-Security-Policy" content="default-src 'self'; script-src 'self'  https://cdn.jsdelivr.net/; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net/; font-src 'self' https://fonts.gstatic.com;">
+    <script
+    type="module"
+    src="./js/install-button.js?module"
+   ></script>
+
+    <title>ImSwitch</title>
+  </head>
+  <body>
+    <div id="parent" class="container h-100">
+      <div class="row align-items-center">
+        <div class="col">
+          <h1>Update Firmware for UC2-ESP32</h1>
+          <p>
+            <br>
+              This will pull and install the latest version of imswitch from https://github.com/openUC2/imswitch.            
+            <br>
+          </p>
+        </div>
+      </div>
+      <div class="row align-items-center m-4">
+        <div class="col d-grid gap-2">
+            <a role="button" class="btn btn-warning" id="back" href="../menu.html">Back</a>
+        </div>
+        <div class="col d-grid">
+            <button type="button" class="btn btn-primary" id="updateImSwitch">Update ImSwitch</button>
+        </div>
+      </div>
+    
+    <div class="content">
+      <h1>UC2 ESP32 Flashing Tool</h1>
+      <p></p>
+      <p>
+        User-friendly tools to flash/upload the firmware for the openUC2 ESP32 device in the browser:
+      </p>
+      <ul>
+        <li>Install &amp; update firmware</li>
+        <li>Connect device to the Wi-Fi network (work in progress)</li>
+        <li>Visit the device's hosted web interface (work in progress)</li>
+        <li>Access logs and send terminal commands (work in progress)</li>
+      </ul>
+      <p>
+        Pick your UC2 PCB and flash the software using the browser! No programming or other software required.
+      </p>
+      <h2 id="test">Test the Firmware</h2>
+      <p>An online Tool will enable you to connect to the ESP and control certain hardware elements. Follow <a href="https://youseetoo.github.io/indexWebSerialTest.html">this link</a>, select the ESP32 and hit e.g. the LED on button.</p>
+      <h2 id="demo">Flash the Firmware</h2>
+      <p>This webpage will install <a href="https://github.com/youseetoo/uc2-esp32/">UC2-ESP</a>. To get started, connect
+        an ESP device to your computer and hit the button (we assume you installed the CH340 or CP2102 driver; The links to the drivers
+         will be suggested if no Serial device is found by the browser.).</p>
+      <p><strong>Note: </strong>This is only available on Chrome or Microsoft Edge.&nbsp;</p>
+      
+      <div class="radios">
+        <label>
+          <input type="radio" name="type" value="esp32-uc2-wemos" checked />
+          <img src="./esp32-uc2-wemos.jpg" alt="ESP32 Generic" />
+        </label>
+        <label>
+          <input type="radio" name="type" value="esp32-uc2-standalone-1" />
+          <img src="./esp32-uc2-standalone-1.png" alt="M5Stack Atom Lite" />
+        </label>
+        <label>
+          <input type="radio" name="type" value="esp32-uc2-standalone-2" />
+          <img src="./esp32-uc2-standalone-2.png" />
+        </label>
+        <label>
+          <input type="radio" name="type" value="esp32-uc2-standalone-3" />
+          <img src="./esp32-uc2-standalone-3.png" />
+        </label>        
+      </div>
+
+      <p class="button-row" align="center">
+        <esp-web-install-button></esp-web-install-button>
+      </p>
+      <style>
+        body {
+          font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI",
+            Roboto, Ubuntu, sans-serif;
+          padding: 0;
+          margin: 0;
+          line-height: 1.4;
+        }
+        .content {
+          max-width: 600px;
+          margin: 0 auto;
+          padding: 12px;
+        }
+        .header {
+          display: block;
+          width: 100%;
+          aspect-ratio: 1200 / 675;
+          border-radius: 12px;
+        }
+        h3 {
+          margin-top: 1.5em;
+        }
+        a {
+          color: #03a9f4;
+        }
+        .hidden {
+          display: none;
+        }
+        li {
+          padding: 4px 0;
+        }
+        .footer {
+          margin-top: 24px;
+          border-top: 1px solid #ccc;
+          padding-top: 24px;
+          text-align: center;
+        }
+        .footer .initiative {
+          font-style: italic;
+          margin-top: 16px;
+        }
+        .radios {
+          display: flex;
+          flex-direction: row;
+          flex-wrap: wrap;
+          align-items: center;
+        }
+        .radios label {
+          padding: 4px;
+          cursor: pointer;
+          width: calc(33.3% - 16px);
+          display: block;
+          position: relative;
+        }
+        .radios input {
+          position: absolute;
+          top: 12px;
+          left: 12px;
+        }
+        .radios img {
+          display: block;
+          width: calc(100% - 8px);
+          border: 4px solid rgba(0, 0, 0, 0);
+          aspect-ratio: 1;
+        }
+        input:checked + img {
+          border-color: #58a6ff;
+        }
+        @media (prefers-color-scheme: dark) {
+          body {
+            background-color: #333;
+            color: #fff;
+          }
+          a {
+            color: #58a6ff;
+          }
+        }
+        @media only screen and (max-width: 450px) {
+          .radios label {
+            width: calc(50% - 16px);
+            max-width: initial;
+          }
+        }
+        .diy::after {
+          content: "DIY";
+          background-color: #f44336;
+          color: #fff;
+          padding: 2px 4px;
+          border-radius: 4px;
+          font-size: 0.8em;
+          position: absolute;
+          bottom: 12px;
+          left: 12px;
+        }
+        body .diy {
+          display: none;
+        }
+        body.show-diy .diy {
+          display: initial;
+        }
+      </style>
+  
+      <div class="hidden info esp32-generic">
+        <h3>Generic ESP32</h3>
+        <p>
+          Turn any ESP32 into a Bluetooth proxy for Home Assistant. This option
+          only works for "plain" ESP32 and not for ESP32-C3 or other variants.
+        </p>
+        <p>Buy</p>
+        <ul>
+          <li>
+            <a
+              href="https://www.amazon.com/ESP-WROOM-32-Development-Microcontroller-Integrated-Compatible/dp/B08D5ZD528/?&_encoding=UTF8&tag=homeassista0e-20&linkCode=ur2&linkId=f9087b654cd5735f0761ae5db99e1e1a&camp=1789&creative=9325"
+              >Amazon</a
+            >
+          </li>
+        </ul>
+      </div>
+
+      <div class="hidden info esp32-uc2-wemos">
+        <h3>ESP32 WEMOS D1 R32-based UC2 board</h3>
+        <p>
+          This is an off-the-shelf board that can - in conjuction with the CNC Shield v3 - 
+          be used for most of the microscopy tasks we use in the lab every day. The serious 
+          disadvantage is the inability to quickly add new devices since the pins do not really allow this.
+          More information can be found  <a href="https://github.com/openUC2/UC2-REST#hardware"> here.</a>
+        </p>
+        
+      </pre>
+      </div>
+
+      <div class="hidden info esp32-uc2-standalone-1">
+        <h3>ESP32 DEV-based UC2 standalone board V1 (deprecated)</h3>
+        Design files can be found  <a href="https://github.com/openUC2/UC2-SUES/">here</a>
+        <p>Lays out all the necessary pins to control steppers, LEDs, Lasers, etc.</p>
+
+      </div>
+
+      <div class="hidden info esp32-uc2-standalone-2">
+        <h3>ESP32 DEV-based UC2 standalone board V2</h3>
+        Design files can be found  <a href="https://github.com/openUC2/UC2-SUES/">here</a>
+        <p>
+          This board is the updated version of the V1 with additional transistors to control High Power LEDs. 
+          It also features an updated pin layout to access more functionalities of the ESP32. 
+          More information can be found <a href="https://openuc2.github.io/docs/Electronics/uc2e2"> here.</a>
+        </p>
+      </div>
+
+      <div class="hidden info esp32-uc2-standalone-3">
+        <h3>ESP32 DEV-based UC2 standalone board V3</h3>
+        Design files can be found  <a href="https://github.com/openUC2/UC2-SUES/">here</a>
+        <p>
+          This board is the updated version of the V2 with additional transistors to control High Power LEDs and a 
+          port extender to drive the dirrection and enabling pins of the Motors. The board also enables the use of 
+          linear encoders that are used in callipers. 
+          It also features an updated pin layout to access more functionalities of the ESP32. 
+          More information can be found <a href="https://openuc2.github.io/docs/Electronics/uc2e2"> here.</a>
+        </p>
+      </div>
+
+
+      <h3>Advanced Users</h3>
+      We provide two firmware versions: V1 (deprecated) and V2. The latter is implemented in the Platform.io standard. 
+      You can find more information on their dedicated github repositories:
+      <ul>
+        <li>
+          UC2-REST is entirely implemented in the Arduino IDE framework. More information can be found can be found:
+          <a
+            href="https://github.com/openUC2/UC2-REST/tree/master/ESP32"
+            >here</a
+          >
+        </li>
+        <li>
+          An updated version called UC2-ESP is implemented in the Platform.io framework. More information can be found:
+          <a href="https://github.com/youseetoo/uc2-esp32/">here</a>
+        </li>
+      </ul>
+
+      <h3></h3>
+      <h3 id="logs">Viewing logs &amp; sending commands</h3>
+      <p>ESP Web Tools allows users to open a serial console to see the logs and send commands.</p>
+      <p class="screenshot"><img src="static/screenshots/logs.png"
+          alt="Screenshot showing ESP Web Tools dialog with a console showing ESPHome logs and a terminal prompt to sent commands." />
+      </p>
+      <i>Screenshot showing the ESP Web Tools logs &amp; console</i>
+      <i>Based on the <a href="https://github.com/esphome/esp-web-tools">ESPHome Web-Tool</a>. </i>
+
+      
+    </div>
+    <script>
+      document.querySelectorAll('input[name="type"]').forEach((radio) =>
+        radio.addEventListener("change", () => {
+          const button = document.querySelector("esp-web-install-button");
+          button.manifest = `./static/firmware_build/${radio.value}-manifest.json`;
+
+          document.querySelectorAll(".info").forEach((info) => {
+            info.classList.add("hidden");
+          });
+          document
+            .querySelector(`.info.${radio.value}`)
+            .classList.remove("hidden");
+        })
+      );
+      document
+        .querySelector('input[name="type"]:checked')
+        .dispatchEvent(new Event("change"));
+      if (new URLSearchParams(document.location.search).has("diy")) {
+        document.body.classList.add("show-diy");
+      }
+
+      
+    </script>
+  </body>
+</html>

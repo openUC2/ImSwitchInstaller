@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="icon" href="../../../../favicon.ico">
+
+    <title>Narrow Jumbotron Template for Bootstrap</title>
+
+    <!-- Bootstrap core CSS -->
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
+    <link href="editor.css" rel="stylesheet">
+</head>
+
+<body data-new-gr-c-s-check-loaded="14.1093.0" data-gr-ext-installed="" data-new-gr-c-s-loaded="14.1093.0">
+
+    <div class="container">
+        <div class="header clearfix">
+            <nav>
+                <ul class="nav nav-pills float-right">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#">Home <span class="sr-only">(current)</span></a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">About</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Contact</a>
+                    </li>
+                </ul>
+            </nav>
+            <h3 class="text-muted">Project name</h3>
+        </div>
+
+        <div class="jumbotron">
+            <h1 class="display-3">Try UC2 online</h1>
+            <p class="lead">This is to use the Web Serial interface to control a UC2 ESP device</p>
+            <p><a class="btn btn-lg btn-success" id="openclose_port" role="button">Connect to ESP32</a></p>
+        </div>
+
+        <div id="text-interface">
+            <h3>Enter text:</h3>
+            <input placeholder="Enter some text" name="input-text" />
+      
+            <h3>Display text:</h3>
+            <p id="output-text"></p>
+      
+            <h3>Received from Arduino:</h3>
+            <p id="received-text"></p>
+          </div>
+
+          
+        <div class="row marketing">
+            <div class="col-lg-6">
+                <canvas id="mImage" width="200" height="100"></canvas>
+                
+
+                <div>
+                    <span>Baud Rate: </span>
+                    <select id="baud_rate">
+                        <option value="2000000">2000000</option>
+                        <option value="115200">115200</option>
+                        <option value="9600">9600</option>
+                        <option value="19200">19200</option>
+                        <option value="38400">38400</option>
+                        <option value="57600">57600</option>
+                    </select><button id="change" disabled>Change</button>
+                </div>
+                <span id="port_info">Disconnected</span>
+
+                <h4>Motor X</h4>
+
+                <h4>Serial Terminal X</h4>
+                <div id="outDiv">
+                    <textarea id="term_window" readonly>Hellorld!</textarea>
+                </div>
+                <div id="inDiv">
+                    <textarea id="term_input"></textarea>
+                    <button id="send" disabled>Send</button>
+                    <button id="clear" disabled>Clear</button>
+                </div>
+                
+            </div>
+
+
+        </div>
+
+        <footer class="footer">
+            <p>© openUC2 2023</p>
+        </footer>
+
+    </div> <!-- /container -->
+    <script src="js/script.js"></script>
+
+
+    <script>
+        
+    </script>
+</html>
+
+

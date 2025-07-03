@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="../css/style.css" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC"
+      crossorigin="anonymous"
+    />
+
+    <title>ImSwitch Installer</title>
+  </head>
+  <body>
+    <div id="parent" class="container h-100">
+      <div class="row align-items-center">
+        <div class="col">
+          <h1>JSON Editor</h1>
+          <link
+            href="../node_modules/jsoneditor/dist/jsoneditor.min.css"
+            rel="stylesheet"
+            type="text/css"
+          />
+          <p id="version"></p>
+          <p>
+            <br />
+            Modify the JSON file below to customize the ImSwitch settings.
+            <br />
+          </p>
+        </div>
+      </div>
+      <div class="row align-items-center">
+        <div class="col d-grid">
+          <a role="button" class="btn btn-primary" href="./index.html">Back</a>
+          <select id="fileSelector"></select>
+          <button id="saveButton">Save Changes</button>
+          <div id="jsoneditor" style="width: 800px; height: 400px;"></div>
+        
+          <script src="../node_modules/jsoneditor/dist/jsoneditor.min.js"></script>
+          <script src="configs/renderer.js"></script>
+        </div>
+      </div>
+    </div>
+    <script src="../node_modules/jsoneditor/dist/jsoneditor.min.js"></script>
+  </body>
+</html>

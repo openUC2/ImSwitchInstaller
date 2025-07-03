@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="icon" href="../../../../favicon.ico">
+
+    <title>openUC2 WebSERIAL Demonstration</title>
+
+    <!-- Bootstrap core CSS -->
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
+    <link href="editor.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.6.0/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.2/FileSaver.min.js"></script>
+
+
+</head>
+
+<body data-new-gr-c-s-check-loaded="14.1093.0" data-gr-ext-installed="" data-new-gr-c-s-loaded="14.1093.0">
+
+    <div class="container">
+        <div class="header clearfix">
+            <nav>
+                <ul class="nav nav-pills float-right">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#">Home <span class="sr-only">(current)</span></a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">About</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Contact</a>
+                    </li>
+                </ul>
+            </nav>
+            <h3 class="text-muted">openUC2 WebSERIAL Demonstration</h3>
+        </div>
+
+        <div class="jumbotron">
+            <h1 class="content"><img
+                src="https://raw.githubusercontent.com/openUC2/openUC2.github.io/master/static/img/Artboard4%404x.png"
+                width="105" height="121" alt="" />&nbsp; &nbsp;OpenUC2 Online Tool</h1>
+            <p class="lead">This is to use the Web Serial interface to control a UC2 ESP device</p>
+            <p><a class="btn btn-lg btn-success" id="openclose_port" role="button">Connect to ESP32</a></p>
+        </div>
+
+
+
+        <div class="row marketing">
+            <div class="col-lg-6">
+                <h4>Microscope Webcam Livestream</h4>
+                    <div id="container">
+
+
+                        <p>Get available audio, video sources and audio output devices from <code>mediaDevices.enumerateDevices()</code>
+                            then set the source for <code>getUserMedia()</code> using a <code>deviceId</code> constraint.</p>
+                        <p><b>Note:</b> without permission, the browser will restrict the available devices to at most one per type.</p>
+
+                        <div class="select">
+                            <label for="audioSource">Audio input source: </label><select id="audioSource"></select>
+                        </div>
+
+                        <div class="select">
+                            <label for="audioOutput">Audio output destination: </label><select id="audioOutput"></select>
+                        </div>
+
+                        <div class="select">
+                            <label for="videoSource">Video source: </label><select id="videoSource"></select>
+                        </div>
+
+                        <video id="video" playsinline autoplay></video>
+                    </div>
+                </p>
+                
+                <h4>Timelapse Settings </h4>
+                <p>Set the interval (in milliseconds) and control the timelapse.</p>
+                <label for="timelapseInterval">Interval (ms): </label>
+                <input type="number" id="timelapseInterval" value="5000">
+                <p><label for="downloadImagesInterval">Download Images (N-times): </label>  
+                <input type="number" id="downloadImagesInterval" value="500">  </p>
+                <p>Snaps Taken: <span id="snapCounter">0</span></p>
+                <p><button type="button" id="startTimelapseBtn" class="btn btn-info">Start Timelapse</button></p>
+                <p><button type="button" id="stopTimelapseBtn" class="btn btn-warning" disabled>Stop Timelapse</button></p>
+
+
+
+                <h4>Hardware Control</h4>
+
+                <table border="0">
+                    <tr>
+                        <th><b>Status</b></th>
+                    </tr>
+                    <tr>
+                        <th><p><button type="button" onclick="getState()" class="btn btn-info" style="">Get Board info</button></p></th>
+                    </tr>
+                    <tr>
+                        <th><b>Laser</b></th>
+                    </tr>
+                    <tr>
+                        <th><p><button type="button" onclick="laser1On()" class="btn btn-info" style="">Laser 1 (on)</button></p></th>
+                        <th><p><button type="button" onclick="laser1Off()" class="btn btn-warning" style="">Laser 1 (off)</button></p></th>
+                        <th><p><input type="range" min="0" max="4095" value="0" class="slider" id="laser1Slider" onchange="setLaser1(1, this.value)"></p><p>Value: <span id="laser1Value">0</span></p></th>
+                    </tr>
+                    <tr>
+                        <th><p><button type="button" onclick="laser2On()" class="btn btn-info" style="">Laser 2 (on)</button></p></th>
+                        <th><p><button type="button" onclick="laser2Off()" class="btn btn-warning" style="">Laser 2 (off)</button></p></th>
+                        <th><p><input type="range" min="0" max="4095" value="0" class="slider" id="laser2Slider" onchange="setLaser2(2, this.value)"></p><p>Value: <span id="laser2Value">0</span></p></th>
+                    </tr>
+                    <tr>
+                        <th><p><button type="button" onclick="laser3On()" class="btn btn-info" style="">Laser 3 (on)</button></p></th>
+                        <th><p><button type="button" onclick="laser3Off()" class="btn btn-warning" style="">Laser 3 (off)</button></p></th>
+                        <th><p><input type="range" min="0" max="4095" value="0" class="slider" id="laser3Slider" onchange="setLaser3(3, this.value)"></p><p>Value: <span id="laser3Value">0</span></p></th>
+                    </tr>
+
+                    <tr>
+                        <th><b>Motor</b></th>
+                    </tr>
+                    <tr>
+                        <th><p><button type="button" onclick="axisXplus()" class="btn btn-info" style="">Motor X (+)</button></p></th>
+                        <th><p><button type="button" onclick="axisXminus()" class="btn btn-warning" style="">Motor X (-)</button></p></th>
+                        <th><p><button type="button" onclick="axisXForverplus()" class="btn btn-info" style="">Motor X forever (+)</button></p></th>
+                        <th><p><button type="button" onclick="axisXForverminus()" class="btn btn-info" style="">Motor X forver (-)</button></p></th>
+                        <th><p><button type="button" onclick="stopX()" class="btn btn-error" style="">Stop Motor X</button></p></th>
+                    </tr>
+
+                    <tr>
+                        <th><p><button type="button" onclick="axisYplus()" class="btn btn-info" style="">Motor Y (+)</button></p></th>
+                        <th><p><button type="button" onclick="axisYminus()" class="btn btn-warning" style="">Motor Y (-)</button></p></th>
+                        <th><p><button type="button" onclick="axisYForverplus()" class="btn btn-info" style="">Motor Y forever (+)</button></p></th>
+                        <th><p><button type="button" onclick="axisYForverminus()" class="btn btn-info" style="">Motor Y forver (-)</button></p></th>
+                        <th><p><button type="button" onclick="stopY()" class="btn btn-error" style="">Stop Motor Y</button></p></th>
+                    </tr>
+
+                    <tr>
+                        <th><p><button type="button" onclick="axisZplus()" class="btn btn-info" style="">Motor Z (+)</button></p></th>
+                        <th><p><button type="button" onclick="axisZminus()" class="btn btn-warning" style="">Motor Z (-)</button></p></th>
+                        <th><p><button type="button" onclick="stopZ()" class="btn btn-warning" style="">Stop Motor Z (-)</button></p></th>
+                    </tr>
+
+                    <tr>
+                        <th><p><button type="button" onclick="axisAplus()" class="btn btn-info" style="">Motor A (+)</button></p></th>
+                        <th><p><button type="button" onclick="axisAminus()" class="btn btn-warning" style="">Motor A (-)</button></p></th>
+                        <th><p><button type="button" onclick="stopA()" class="btn btn-warning" style="">Stop Motor A (-)</button></p></th>
+                    </tr>
+
+                    <tr>
+                        <th><b>Rotator</b></th>
+                    </tr>
+                    <tr>
+                        <th><p><button type="button" onclick="rotatorXplus()" class="btn btn-info" style="">Rotator X (+)</button></p></th>
+                        <th><p><button type="button" onclick="rotatorXminus()" class="btn btn-warning" style="">Rotator X (-)</button></p></th>
+                    </tr>
+
+                    <tr>
+                        <th><p><button type="button" onclick="rotatorYplus()" class="btn btn-info" style="">Rotator Y (+)</button></p></th>
+                        <th><p><button type="button" onclick="rotatorYminus()" class="btn btn-warning" style="">Rotator Y (-)</button></p></th>
+                    </tr>
+
+                    <tr>
+                        <th><p><button type="button" onclick="rotatorZplus()" class="btn btn-info" style="">Rotator Z (+)</button></p></th>
+                        <th><p><button type="button" onclick="rotatorZminus()" class="btn btn-warning" style="">Rotator Z (-)</button></p></th>
+                    </tr>
+
+                    <tr>
+                        <th><p><button type="button" onclick="rotatorAplus()" class="btn btn-info" style="">Rotator A (+)</button></p></th>
+                        <th><p><button type="button" onclick="rotatorAminus()" class="btn btn-warning" style="">Rotator A (-)</button></p></th>
+                    </tr>
+
+                    <tr>
+                        <th><b>LED</b>
+                    </tr>
+                    <tr>
+                        <th><p><button type="button" onclick="ledOn()" class="btn btn-info" style="">LED (on)</button></p></th>
+                        <th><p><button type="button" onclick="ledOff()" class="btn btn-warning" style="">LED (off)</button></p></th>
+                    </tr>
+
+                    <tr>
+                        <th><b>Outer Ring</b>
+                    </tr>
+                    <tr>
+                            <th><p><button type="button" onclick="turnOnOuterRing()" class="btn btn-info" style="">LED outer ring (on)</button></p></th>
+                            <th><p><button type="button" onclick="turnOffOuterRing()" class="btn btn-warning" style="">LED outer ring (off)</button></p></th>
+                    </tr>
+
+                    <tr>
+                        <th><b>Middle Ring</b>
+                    </tr>
+                    <tr>
+                            <th><p><button type="button" onclick="turnOnMiddleRing()" class="btn btn-info" style="">LED middle ring (on)</button></p></th>
+                            <th><p><button type="button" onclick="turnOffMiddleRing()" class="btn btn-warning" style="">LED middle ring (off)</button></p></th>
+                    </tr>
+
+                    <tr>
+                        <th><b>Inner Ring</b>
+                    </tr>
+                    <tr>
+                            <th><p><button type="button" onclick="turnOnCenterRing()" class="btn btn-info" style="">LED inner ring (on)</button></p></th>
+                            <th><p><button type="button" onclick="turnOffCenterRing()" class="btn btn-warning" style="">LED inner ring (off)</button></p></th>
+                    </tr>
+
+
+                    <tr>
+                        <th><b>Enable</b>
+                    </tr>
+                    <tr>
+                        <th><p><button type="button" onclick="autoEnableOn()" class="btn btn-info" style="">Auto Enable (on)</button></p></th>
+                        <th><p><button type="button" onclick="autoEnableOff()" class="btn btn-warning" style="">Auto Enable (off)</button></p></th>
+                    </tr>
+
+                </tr>
+                <th><b>Connect to PS4 Controller</b></th>
+                <tr>
+                    <th><p><button type="button" onclick="btPairing()" class="btn btn-info" style="">BT Pairing</button></p></th>
+                </tr>
+
+
+
+                </table>
+                  </body>
+                  </html>
+
+
+                <div>
+                    <span>Baud Rate: </span>
+                    <select id="baud_rate">
+                        <option value="115200">115200</option>
+                        <option value="500000">500000</option>
+                        <option value="128000">128000</option>
+                        <option value="9600">9600</option>
+                        <option value="19200">19200</option>
+                        <option value="38400">38400</option>
+                        <option value="57600">57600</option>
+                        <option value="1000000">1000000</option>
+                        <option value="2000000">2000000</option>
+                    </select><button id="change" disabled>Change</button>
+                </div>
+                <span id="port_info">Disconnected</span>
+
+                <h4>Motor X</h4>
+
+                <h4>Serial Terminal X</h4>
+                <div id="outDiv">
+                    <textarea id="term_window" style="width:600px; height:150px;"  readonly>!</textarea>
+                </div>
+                <div id="inDiv">
+                    <textarea id="term_input" style="width:600px; height:150px;" ></textarea>
+                    <button id="send" disabled>Send</button>
+                    <button id="clear" disabled>Clear</button>
+                </div>
+            </div>
+        </div>
+
+        <h2 class="text-center">Code Examples</h2>
+        <pre><code height: auto; width: 600px; class="json">
+
+          # enable
+          {"task":"/motor_act", "isen":1, "isenauto":1}
+        # modules
+
+    {"task":"/modules_get"}
+    {"task":"/modules_set", "modules" : {"led" : 1, "motor": 1, "slm" : 0, "home":1, "analogin" : 0, "pid" : 0, "laser" : 1, "dac" : 0, "analogout" : 0, "digitalout" : 0, "digitalin" : 1, "scanner" : 0}}
+    {"task":"/modules_set", "modules" : {"led" : 0, "motor": 1, "slm" : 0, "home":0, "analogin" : 0, "pid" : 0, "laser" : 0, "dac" : 0, "analogout" : 0, "digitalout" : 0, "digitalin" : 1, "scanner" : 0}}
+    {"task":"/state_get"}
+    # DAC
+    {"task":"/dac_act_fct", "dac_channel":1, "frequency":1000, "offset":0, "amplitude":1}
+
+    # MOTOR
+    # X,Y,Z,A => 1,2,3,0
+    {"task":"/motor_set",
+        "motor":
+        {
+            "steppers": [
+                { "stepperid": 1, "step": 26, "dir": 16, "enable": 12, "step_inverted": 0, "dir_inverted": 0, "enable_inverted": 0 , "min_pos":0, "max_pos":0},
+                { "stepperid": 2, "step": 25, "dir": 27, "enable": 12, "step_inverted": 0, "dir_inverted": 0, "enable_inverted": 0 , "min_pos":0, "max_pos":0},
+                { "stepperid": 3, "step": 17, "dir": 14, "enable": 12, "step_inverted": 0, "dir_inverted": 0, "enable_inverted": 0 , "min_pos":0, "max_pos":0},
+                { "stepperid": 0, "step": 19, "dir": 18, "enable": 12, "step_inverted": 0, "dir_inverted": 0, "enable_inverted": 0 , "min_pos":0, "max_pos":0}
+            ]
+        }
+    }
+    {"task":"/motor_set", "isen":0}
+    {"task":"/motor_set", "isen":1}
+    {"task":"/motor_act",
+        "motor":
+        {
+            "steppers": [
+                { "stepperid": 1, "position": 10000, "speed": 5000, "isabs": 0, "isaccel":0},
+                { "stepperid": 3, "position": 10000, "speed": 5000, "isabs": 0, "isaccel":0}
+            ]
+        }
+    }
+    {"task":"/motor_act",
+        "motor":
+        {
+            "steppers": [
+                { "stepperid": 3, "position": -1000, "speed": 1000, "isabs": 0, "isaccel":0}
+            ]
+        }
+    }
+    {"task":"/motor_act",
+        "motor":
+        {
+            "steppers": [
+                { "stepperid": 3, "isforever": 1, "speed": 2000}
+            ]
+        }
+    }
+
+
+
+    # DIGITAL OUT
+    // trigger
+    {"task":"/digitalout_set", "digitaloutid":1, "digitaloutpin":4}
+    {"task":"/digitalout_act", "digitalout1TriggerDelayOn":100, "digitalout1TriggerDelayOff":10, "digitalout1IsTrigger":1,  "digitalout2TriggerDelayOn":10, "digitalout2TriggerDelayOff":100, "digitalout2IsTrigger":1}
+    {"task":"/digitalout_act", "digitaloutistriggerreset":1}
+
+
+    # DIGITAL IN
+    {"task": "/digitalin_set", "digitalinid":1, "digitalinpin":13}
+    {"task": "/digitalin_set", "digitalinid":2, "digitalinpin":5}
+    {"task": "/digitalin_set", "digitalinid":3, "digitalinpin":23}
+    {"task": "/digitalin_get", "digitalinid":1}
+
+    {"task": "/digitalin_set", "digitalinid":3, "digitalinpin":34}
+    {"task": "/laser_set", "LASERid":1, "LASERpin":18}
+    {"task": "/laser_set", "LASERid":2, "LASERpin":19}
+    {"task": "/ledarr_set", "led":{"ledArrPin":32, "ledArrNum":64}}
+
+
+    # LASER
+    {"task": "/laser_act", "LASERid":2, "LASERpin":19}
+    payload = {
+        "task": path,
+        "LASERid": channel,
+        "LASERval": value,
+        "LASERdespeckle": int(value*despeckleAmplitude),
+        "LASERdespecklePeriod": int(despecklePeriod),
+    }
+    {"task": "/laser_act", "LASERid":1, "LASERval": 1024}
+    {"task": "/laser_get"}
+
+    # HOME
+    {"task": "/home_get"}
+    {"task": "/home_set"}
+    {"task":"/home_act", "home": {"steppers": [{"stepperid":1, "timeout": 20000, "speed": 15000, "direction":-1, "endposrelease":3000}]}}
+    {"task":"/home_act", "home": {"steppers": [{"stepperid":2, "timeout": 20000, "speed": 15000, "direction":-1, "endposrelease":3000}]}}
+    {"task":"/home_act", "home": {"steppers": [{"stepperid":3, "timeout": 2000, "speed": 15000, "direction":-1, "endposrelease":3000}]}}
+
+
+    {"task":"/home_act", "home": {"steppers": [{"stepperid":1, "timeout": 20000, "speed": 15000, "direction":1, "endposrelease":3000}
+    {"stepperid":2, "timeout": 20000, "speed": 15000, "direction":1, "endposrelease":3000}]}}
+
+
+
+
+
+    {"task":"/wifi/scan"}
+    {"task":"/wifi/connect","ssid":"Test","PW":"12345678", "AP":false}
+    {"task":"/bt_connect", "mac":"1a:2b:3c:01:01:01", "psx":2}
+
+
+    {"task":"/ledarr_act", "led":{"LEDArrMode":1, "led_array":[{"id":0, "r":0, "g":5, "b":0}]}}
+    {"task":"/ledarr_act", "led":{"LEDArrMode":0, "led_array":[{"id":0, "r":0, "g":5, "b":0}]}}
+
+    {"task": "/motor_get"}
+
+    # HOLISHEET
+    {"task":"/modules_set", "modules" : {"dac" : 1}}
+    {"task": "/laser_act", "LASERid":1, "LASERval": 512}
+    {"task":"/dac_act", "dac_channel":1, "frequency":1}
+    {"task":"/motor_act",
+        "motor":
+        {
+            "steppers": [
+                { "stepperid": 1, "position": -10000, "speed": 15000, "isabs": 0, "isaccel":0},
+                { "stepperid": 2, "position": 10000, "speed": 15000, "isabs": 0, "isaccel":0}
+            ]
+        }
+    }
+
+
+
+
+    {"task":"/motor_act",
+        "motor":
+        {
+            "steppers": [
+                { "stepperid": 1, "position": -10000, "speed": 15000, "isabs": 0, "isaccel":0, "isen":1},
+                { "stepperid": 3, "position": 10000, "speed": 15000, "isabs": 0, "isaccel":0}
+            ]
+        }
+    }
+
+    {"task":"/motor_act",
+        "motor":
+        {
+            "steppers": [
+                { "stepperid": 1, "position": -10000, "speed": 15000, "isabs": 0, "isaccel":0, "isen":1}
+        ]}}
+
+    {"task":"/motor_act",     "motor":     {         "steppers": [             { "stepperid": 1, "position": -1000, "speed": 2000, "isabs": 0, "isaccel":1, "isen":0, "accel":20000}     ]}}
+
+
+
+    {"task":"/home_act", "setpos":1, "home": {"steppers": [{"stepperid":1, "posval": 20000}]}}
+    </code></pre>
+
+
+        <footer class="footer">
+            <p>© openUC2 2023</p>
+        </footer>
+
+    </div> <!-- /container -->
+    <script src="js/script.js"></script>
+    <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+    <script src="js/webrtcmain.js" async></script>
+    <script src="../../../js/lib/ga.js"></script>
+
+    <script>
+
+        function setLaser1(index, value) {
+            // Your implementation for setLaser
+            document.getElementById("laser1Value").innerText = value;
+            cmd='{"task": "/laser_act", "LASERid":1, "LASERval": ' + value + '}'
+            sendCMD(cmd)
+        }
+        
+        // Initialize the slider
+        document.getElementById("laser1Slider").addEventListener("input", function() {
+            setLaser1(1, this.value);
+        });
+
+        function setLaser2(index, value) {
+            // Your implementation for setLaser
+            document.getElementById("laser2Value").innerText = value;
+            cmd='{"task": "/laser_act", "LASERid":2, "LASERval": ' + value + '}'
+            sendCMD(cmd)
+        }
+
+        // Initialize the slider
+        document.getElementById("laser2Slider").addEventListener("input", function() {
+            setLaser2(2, this.value);
+        });
+
+        function setLaser3(index, value) {
+            // Your implementation for setLaser
+            document.getElementById("laser3Value").innerText = value;
+            cmd='{"task": "/laser_act", "LASERid":3, "LASERval": ' + value + '}'
+            sendCMD(cmd)
+        }
+
+        // Initialize the slider
+        document.getElementById("laser3Slider").addEventListener("input", function() {
+            setLaser3(3, this.value);
+        });
+
+
+        function getState() {
+            cmd='{"task":"/state_get"}'
+            sendCMD(cmd)
+        }
+        function laser1On() {
+            cmd='{"task": "/laser_act", "LASERid":1, "LASERval": 1024}'
+            sendCMD(cmd)
+        }
+        function laser1Off() {
+            cmd='{"task": "/laser_act", "LASERid":1, "LASERval": 0}'
+            sendCMD(cmd)
+        }
+        function laser2On() {
+            cmd='{"task": "/laser_act", "LASERid":2, "LASERval": 1024}'
+            sendCMD(cmd)
+        }
+        function laser2Off() {
+            cmd='{"task": "/laser_act", "LASERid":2, "LASERval": 0}'
+            sendCMD(cmd)
+        }
+        function laser3On() {
+            cmd='{"task": "/laser_act", "LASERid":3, "LASERval": 1024}'
+            sendCMD(cmd)
+        }
+        function laser3Off() {
+            cmd='{"task": "/laser_act", "LASERid":3, "LASERval": 0}'
+            sendCMD(cmd)
+        }
+        function ledOn() {
+            cmd='{"task":"/ledarr_act", "led":{"LEDArrMode":1, "led_array":[{"id":0, "r":255, "g":255, "b":255}]}}'
+            sendCMD(cmd)
+        }
+        function ledOff() {
+            cmd='{"task":"/ledarr_act", "led":{"LEDArrMode":1, "led_array":[{"id":0, "r":0, "g":0, "b":0}]}}'
+            sendCMD(cmd);
+        }
+        function axisXplus() {
+            cmd='{"task":"/motor_act","motor":{"steppers": [{ "stepperid": 1, "position": 1000, "speed": 15000, "isabs": 0, "isaccel":0}]}}'
+            sendCMD(cmd)
+        }
+        function stopX() {
+            cmd='{"task":"/motor_act","motor":{"steppers": [{ "stepperid": 1, "isstop": 1}]}}'
+            sendCMD(cmd)
+        }
+        function axisXminus() {
+            cmd='{"task":"/motor_act","motor":{"steppers": [{ "stepperid": 1, "position": -1000, "speed": 15000, "isabs": 0, "isaccel":0}]}}'
+            sendCMD(cmd);
+        }
+        function axisYplus() {
+            cmd='{"task":"/motor_act","motor":{"steppers": [{ "stepperid": 2, "position": 1000, "speed": 15000, "isabs": 0, "isaccel":0}]}}'
+            sendCMD(cmd)
+        }
+        function axisXForverminus() {
+            cmd='{"task":"/motor_act","motor":{"steppers": [{ "stepperid": 1, "isforever":1, "speed": -1500, "isabs": 0, "isaccel":0}]}}'
+            sendCMD(cmd);
+        }
+        function axisXForverplus() {
+            cmd='{"task":"/motor_act","motor":{"steppers": [{ "stepperid": 1, "isforever":1, "speed": 1500, "isabs": 0, "isaccel":0}]}}'
+            sendCMD(cmd);
+        }
+        function axisYForverminus() {
+            cmd='{"task":"/motor_act","motor":{"steppers": [{ "stepperid": 2, "isforever":1, "speed": -1500, "isabs": 0, "isaccel":0}]}}'
+            sendCMD(cmd)
+        }
+        function axisYForverplus() {
+            cmd='{"task":"/motor_act","motor":{"steppers": [{ "stepperid": 2, "isforever":1, "speed": 1500, "isabs": 0, "isaccel":0}]}}'
+            sendCMD(cmd)
+        }
+        function axisYminus() {
+            cmd='{"task":"/motor_act","motor":{"steppers": [{ "stepperid": 2, "position": -1000, "speed": 15000, "isabs": 0, "isaccel":0}]}}'
+            sendCMD(cmd);
+        }
+        function stopY() {
+            cmd='{"task":"/motor_act","motor":{"steppers": [{ "stepperid": 2, "isstop": 1}]}}'
+            sendCMD(cmd)
+        }
+        function axisZplus() {
+            cmd='{"task":"/motor_act","motor":{"steppers": [{ "stepperid": 3, "position": 100, "speed": 15000, "isabs": 0, "isaccel":0}]}}'
+            sendCMD(cmd)
+        }
+        function axisZminus() {
+            cmd='{"task":"/motor_act","motor":{"steppers": [{ "stepperid": 3, "position": -100, "speed": 15000, "isabs": 0, "isaccel":0}]}}'
+            sendCMD(cmd);
+        }
+        function axisAplus() {
+            cmd='{"task":"/motor_act","motor":{"steppers": [{ "stepperid": 0, "position": 1000, "speed": 15000, "isabs": 0, "isaccel":0}]}}'
+            sendCMD(cmd)
+        }
+        function stopZ() {
+            cmd='{"task":"/motor_act","motor":{"steppers": [{ "stepperid": 3, "isstop": 1}]}}'
+            sendCMD(cmd)
+        }
+        function axisAminus() {
+            cmd='{"task":"/motor_act","motor":{"steppers": [{ "stepperid": 0, "position": -1000, "speed": 15000, "isabs": 0, "isaccel":0}]}}'
+            sendCMD(cmd);
+        }
+        function autoEnableOn() {
+            cmd='{"task":"/motor_act", "isen":1, "isenauto":1}'
+            sendCMD(cmd)
+        }
+        function rotatorXplus() {
+            cmd='{"task":"/rotator_act","motor":{"steppers": [{ "stepperid": 1, "position": 1000, "speed": 500, "isabs": 0, "isaccel":0}]}}'
+            sendCMD(cmd)
+        }
+        function stopA() {
+            cmd='{"task":"/motor_act","motor":{"steppers": [{ "stepperid": 0, "isstop": 1}]}}'
+            sendCMD(cmd)
+        }
+        function rotatorXminus() {
+            cmd='{"task":"/rotator_act","motor":{"steppers": [{ "stepperid": 1, "position": -1000, "speed": 500, "isabs": 0, "isaccel":0}]}}'
+            sendCMD(cmd);
+        }
+        function rotatorYplus() {
+            cmd='{"task":"/rotator_act","motor":{"steppers": [{ "stepperid": 2, "position": 1000, "speed": 500, "isabs": 0, "isaccel":0}]}}'
+            sendCMD(cmd)
+        }
+        function rotatorYminus() {
+            cmd='{"task":"/rotator_act","motor":{"steppers": [{ "stepperid": 2, "position": -1000, "speed": 500, "isabs": 0, "isaccel":0}]}}'
+            sendCMD(cmd);
+        }
+        function rotatorZplus() {
+            cmd='{"task":"/rotator_act","motor":{"steppers": [{ "stepperid": 3, "position": 1000, "speed": 500, "isabs": 0, "isaccel":0}]}}'
+            sendCMD(cmd)
+        }
+        function rotatorZminus() {
+            cmd='{"task":"/rotator_act","motor":{"steppers": [{ "stepperid": 3, "position": -1000, "speed": 500, "isabs": 0, "isaccel":0}]}}'
+            sendCMD(cmd);
+        }
+        function rotatorAplus() {
+            cmd='{"task":"/rotator_act","motor":{"steppers": [{ "stepperid": 0, "position": 1000, "speed": 500, "isabs": 0, "isaccel":0}]}}'
+            sendCMD(cmd)
+        }
+        function rotatorAminus() {
+            cmd='{"task":"/rotator_act","motor":{"steppers": [{ "stepperid": 0, "position": -1000, "speed": 500, "isabs": 0, "isaccel":0}]}}'
+            sendCMD(cmd);
+        }
+
+        function turnOnOuterRing(){
+            // construct a JSON string in the following format for all ids from 9-24 in a for loop
+            // {"task":"/ledarr_act", "led":{"LEDArrMode":1, "led_array":[{"id":9, "r":255, "g":255, "b":255}]}}
+            cmd = createJSON(9, 24, 255);
+            sendCMD(cmd);
+        }
+
+        function turnOffOuterRing(){
+            // construct a JSON string in the following format for all ids from 9-24 in a for loop
+            // {"task":"/ledarr_act", "led":{"LEDArrMode":1, "led_array":[{"id":9, "r":0, "g":0, "b":0}]}}
+            cmd = createJSON(9, 24, 0);
+            sendCMD(cmd);
+        }
+
+        function turnOnMiddleRing(){
+            cmd = createJSON(1, 8, 255);
+            sendCMD(cmd);
+        }
+
+        function turnOffMiddleRing(){
+            cmd = createJSON(1, 8, 0);
+            sendCMD(cmd);
+        }
+
+        function turnOnCenterRing(){
+            cmd = createJSON(0, 1, 255);
+            sendCMD(cmd);
+        }
+
+        function turnOffCenterRing(){
+            cmd = createJSON(0, 1, 0);
+            sendCMD(cmd);
+        }
+
+
+        function createJSON(startID, endID, state) {
+            const ledArray = [];
+
+            for (let i = startID; i <= endID; i++) {
+              ledArray.push({
+                id: i,
+                r: state,
+                g: state,
+                b: state
+              });
+            }
+
+            const jsonString = JSON.stringify({
+              task: "/ledarr_act",
+              led: {
+                LEDArrMode: 8,
+                led_array: ledArray
+              }
+            });
+
+            return jsonString;
+          }
+
+        function btPairing() {
+            cmd='{"task":"/bt_scan"}'
+            sendCMD(cmd);
+        }
+
+
+        function autoEnableOff() {
+            cmd='{"task":"/motor_act", "isen":1, "isenauto":0}'
+            sendCMD(cmd);
+        }
+
+
+        let timelapseIntervalID;
+        let snapCounter = 0;
+        let timelapseImages = [];
+        let downloadImagesInterval;
+
+        document.getElementById('startTimelapseBtn').addEventListener('click', startTimelapse);
+        document.getElementById('stopTimelapseBtn').addEventListener('click', stopTimelapse);
+
+        function startTimelapse() {
+            let interval = parseInt(document.getElementById('timelapseInterval').value);
+            downloadImagesInterval = parseInt(document.getElementById('downloadImagesInterval').value);
+            if (isNaN(interval) || interval <= 0) {
+                alert('Please enter a valid interval in milliseconds.');
+                return;
+            }
+
+            timelapseIntervalID = setInterval(captureAndBufferImage, interval);
+            document.getElementById('startTimelapseBtn').disabled = true;
+            document.getElementById('stopTimelapseBtn').disabled = false;
+        }
+
+        function stopTimelapse() {
+            clearInterval(timelapseIntervalID);
+            document.getElementById('startTimelapseBtn').disabled = false;
+            document.getElementById('stopTimelapseBtn').disabled = true;
+        }
+
+        const sleep = (delay) => new Promise((resolve) => setTimeout(resolve, delay))
+
+        
+        function captureAndBufferImage() {
+            const canvas = document.createElement('canvas');
+            const video = document.getElementById('video');
+
+            // turn on illumination 
+            ledOn();
+            // delay for 100ms 
+            sleep(100);
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+        
+            timelapseImages.push(canvas.toDataURL("image/jpeg"));
+            snapCounter++;
+
+            // turn off illumination
+            ledOff();
+        
+            if (snapCounter >= downloadImagesInterval) {
+                downloadImagesAsZip();
+                timelapseImages = []; // Reset the buffer
+                snapCounter = 0; // Reset the counter
+            }
+        
+            updateSnapCounter();
+        }
+        
+        function downloadImagesAsZip() {
+            const zip = new JSZip();
+        
+            for (let i = 0; i < timelapseImages.length; i++) {
+                const imgData = timelapseImages[i].split(',')[1]; // Split the data URL at the base64 part
+                zip.file('timelapse-snap-' + (i + 1) + '.jpg', imgData, {base64: true});
+            }
+        
+            zip.generateAsync({type:"blob"})
+                .then(function(content) {
+                    saveAs(content, "timelapse.zip");
+                });
+        }
+        
+        function updateSnapCounter() {
+            document.getElementById('snapCounter').innerText = snapCounter;
+        }
+        
+    </script>
+
+
+    </html>

@@ -651,30 +651,108 @@ ipcMain.on("startImSwitch", async function (event) {
     
     
     // Start ImSwitch in the background
-    runCommand(pythonPath, args, win)
-      .then(() => {
-        console.log("ImSwitch process completed");
-      })
-      .catch((error) => {
-        console.error("ImSwitch process error:", error);
-      });
-    const localHostname = getOSSpecificHostname();
+    console.log("Starting ImSwitch process...");
+    win.webContents.send("imSwitchStatus", {
+      status: "starting",
+      message: "Launching ImSwitch process..."
+    });
+    
+    // Start the process and track it
+    const child = spawn(pythonPath, args, { 
+      stdio: 'pipe'
+    });
+    
+    // Track the child process globally
+    imSwitchChild = child;
+    
+    let stdout = '';
+    let stderr = '';
 
-        setTimeout(() => {
+    child.stdout.on('data', (data) => {
+        const output = data.toString();
+        stdout += output;
+        console.log('ImSwitch stdout:', output);
+        win.webContents.send("updateStatus", output);
+    });
+
+    child.stderr.on('data', (data) => {
+        const output = data.toString();
+        stderr += output;
+        console.log('ImSwitch stderr:', output);
+        win.webContents.send("updateStatus", output);
+    });
+
+    child.on('close', (code) => {
+        console.log(`ImSwitch process exited with code ${code}`);
+        imSwitchChild = null;
+        win.webContents.send("imSwitchStatus", {
+          status: "stopped",
+          message: `ImSwitch process exited with code ${code}`
+        });
+    });
+
+    child.on('error', (error) => {
+        console.error('ImSwitch process error:', error);
+        imSwitchChild = null;
+        win.webContents.send("imSwitchStatus", {
+          status: "error",
+          message: `ImSwitch process error: ${error.message}`
+        });
+    });
+    
+    // Wait for the API to become ready, then open the browser
+    const localHostname = getOSSpecificHostname();
+    
+    // Start API checking in the background
+    waitForImSwitchAPI(win).then((isReady) => {
+      // Open the browser window regardless of API status
       const childWin = new BrowserWindow({
         width: 1200,
         height: 800,
         webPreferences: { nodeIntegration: true, contextIsolation: false },
       });
+      
       childWin.loadURL(`http://${localHostname}:8001`).catch((error) => {
         console.error("Failed to load ImSwitch web interface:", error);
+        win.webContents.send("imSwitchStatus", {
+          status: "error",
+          message: `Failed to load web interface: ${error.message}`
+        });
       });
-    }, 50000); //  until we don't see anything we should have a spinner showing the user that something is happening
+    }).catch((error) => {
+      console.error("Error during API checking:", error);
+    });
 
   } catch (error) {
     console.error("Failed to start ImSwitch:", error);
     win.webContents.send("updateStatus", `Error: ${error.message}`);
     dialog.showErrorBox("ImSwitch Startup Error", `Failed to start ImSwitch: ${error.message}`);
+  }
+});
+
+// Stop ImSwitch IPC handler
+ipcMain.on("stopImSwitch", async function (event) {
+  console.log("Stopping ImSwitch process...");
+  
+  try {
+    win.webContents.send("imSwitchStatus", {
+      status: "stopping",
+      message: "Stopping ImSwitch..."
+    });
+    
+    await killImSwitchProcess(win);
+    
+    win.webContents.send("imSwitchStatus", {
+      status: "stopped",
+      message: "ImSwitch has been stopped successfully."
+    });
+    
+  } catch (error) {
+    console.error("Failed to stop ImSwitch:", error);
+    win.webContents.send("imSwitchStatus", {
+      status: "error",
+      message: `Error stopping ImSwitch: ${error.message}`
+    });
   }
 });
 
@@ -1074,6 +1152,66 @@ function setUTF8Encoding(win) {
             reject(error);
         }
     });
+}
+
+// Function to check if ImSwitch API is ready by polling the openapi.json endpoint
+async function waitForImSwitchAPI(win, maxAttempts = 60, intervalMs = 2000) {
+  const localHostname = getOSSpecificHostname();
+  const apiUrl = `http://${localHostname}:8001/openapi.json`;
+  
+  console.log(`Checking ImSwitch API readiness at ${apiUrl}`);
+  win.webContents.send("imSwitchStatus", {
+    status: "checking-api",
+    message: "Waiting for ImSwitch API to become ready..."
+  });
+  
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      console.log(`API check attempt ${attempt}/${maxAttempts}`);
+      
+      // Use node-fetch with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      
+      const response = await serverFetch(apiUrl, {
+        method: 'GET',
+        signal: controller.signal,
+        timeout: 5000
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data && (data.openapi || data.swagger)) {
+          console.log("ImSwitch API is ready!");
+          win.webContents.send("imSwitchStatus", {
+            status: "ready",
+            message: "ImSwitch API is ready! Opening web interface..."
+          });
+          return true;
+        }
+      }
+    } catch (error) {
+      // Expected for the first several attempts while ImSwitch is starting up
+      console.log(`API check attempt ${attempt} failed: ${error.message}`);
+    }
+    
+    if (attempt < maxAttempts) {
+      win.webContents.send("imSwitchStatus", {
+        status: "checking-api",
+        message: `Waiting for ImSwitch API... (attempt ${attempt}/${maxAttempts})`
+      });
+      await new Promise(resolve => setTimeout(resolve, intervalMs));
+    }
+  }
+  
+  console.log("ImSwitch API did not become ready within the timeout period");
+  win.webContents.send("imSwitchStatus", {
+    status: "error",
+    message: "ImSwitch API did not become ready within the expected time. Opening interface anyway..."
+  });
+  return false;
 }
 
 // Track the ImSwitch process globally

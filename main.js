@@ -873,6 +873,7 @@ ipcMain.on("updateImSwitch", function (event, data) {
   let updatePromise = Promise.resolve();
 
   // Check if user wants to update packages
+  // TODO: we need to find a better way to update the python pacakge! here it uninstalls the package and then reinstalls it, which is not ideal
   if (1) {  // (data && data.updatePackages) {
     updatePromise = updatePromise.then(() => {
       win.webContents.send("updateStatus", "Updating UC2-REST package...");

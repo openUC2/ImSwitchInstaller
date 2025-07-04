@@ -646,7 +646,7 @@ ipcMain.on("startImSwitch", async function (event) {
     // Spawn and store the child process
     if (imSwitchChild) {
         console.log("ImSwitch is already running. Restarting...");
-        killImSwitchProcess();
+        await killImSwitchProcess(win);
     }
     
     
@@ -943,23 +943,35 @@ ipcMain.on("cancelUninstallation", function (event) {
   // TODO: Implement proper cancellation logic if needed
 });
 
+// Force kill all ImSwitch processes (useful for troubleshooting)
+ipcMain.on("forceKillImSwitch", async function (event) {
+  console.log("Force killing all ImSwitch processes...");
+  
+  try {
+    await killImSwitchProcess(win);
+    event.sender.send("forceKillComplete", "All ImSwitch processes have been terminated.");
+  } catch (error) {
+    console.error("Error force killing ImSwitch processes:", error);
+    event.sender.send("forceKillFailed", error.message);
+  }
+});
+
 // Uninstall helper functions
-function stopImSwitchProcess(win) {
-    return new Promise((resolve, reject) => {
-        try {
-            console.log("Stopping ImSwitch process...");
-            win.webContents.send("updateStatus", "Stopping ImSwitch process...");
-            
-            // Kill any running ImSwitch process
-            killImSwitchProcess(win);
-            
-            resolve(true);
-        } catch (error) {
-            console.error("Error stopping ImSwitch process:", error);
-            // Don't fail the uninstall if we can't stop the process
-            resolve(true);
-        }
-    });
+async function stopImSwitchProcess(win) {
+    try {
+        console.log("Stopping all ImSwitch processes...");
+        win.webContents.send("updateStatus", "Searching for and stopping all ImSwitch processes...");
+        
+        // Kill any running ImSwitch process system-wide
+        await killImSwitchProcess(win);
+        
+        console.log("ImSwitch process stopping completed");
+        return true;
+    } catch (error) {
+        console.error("Error stopping ImSwitch process:", error);
+        // Don't fail the uninstall if we can't stop the process
+        return true;
+    }
 }
 
 function removeMiniforgePath(win) {
@@ -1069,23 +1081,187 @@ let imSwitchChild = null;
 
 
 
-// Function to force-stop ImSwitch
-function killImSwitchProcess(win) {
-  if (!imSwitchChild) {
-    console.log("No ImSwitch process to kill");
-    return;
+// Function to force-stop ImSwitch - kills ALL ImSwitch processes system-wide
+async function killImSwitchProcess(win) {
+  console.log("Searching for and terminating all ImSwitch processes...");
+  
+  try {
+    if (process.platform === "win32") {
+      // Windows: Find and kill all python processes running imswitch
+      await killImSwitchProcessesWindows(win);
+    } else {
+      // macOS and Linux: Find and kill all python processes running imswitch
+      await killImSwitchProcessesUnix(win);
+    }
+    
+    // Also kill the tracked process if it exists
+    if (imSwitchChild) {
+      console.log(`Killing tracked ImSwitch process with PID: ${imSwitchChild.pid}`);
+      try {
+        if (process.platform === "win32") {
+          spawn("taskkill", ["/F", "/PID", imSwitchChild.pid]);
+        } else {
+          imSwitchChild.kill("SIGKILL");
+        }
+      } catch (error) {
+        console.warn("Error killing tracked process:", error.message);
+      }
+      imSwitchChild = null;
+    }
+    
+    console.log("ImSwitch process termination completed");
+  } catch (error) {
+    console.error("Error during ImSwitch process termination:", error);
+    // Continue anyway - don't fail the uninstall
   }
+}
 
-  const pid = imSwitchChild.pid;
-  console.log(`Forcing stop of ImSwitch process with PID: ${pid}`);
-
-  if (process.platform === "win32") {
-    // On Windows, use taskkill
-    spawn("taskkill", ["/F", "/PID", pid]);
-  } else {
-    // On macOS and Linux, send a SIGTERM (or SIGKILL if needed)
-    imSwitchChild.kill("SIGTERM");
+// Windows-specific process killing
+async function killImSwitchProcessesWindows(win) {
+  try {
+    console.log("Searching for ImSwitch processes on Windows...");
+    
+    // Find all python processes running imswitch
+    const findResult = await runCommand("tasklist", ["/FI", "IMAGENAME eq python.exe", "/FO", "CSV"], win);
+    const lines = findResult.stdout.split('\n');
+    
+    // Parse CSV output to find PIDs
+    const pidsToKill = [];
+    for (let i = 1; i < lines.length; i++) { // Skip header
+      const line = lines[i].trim();
+      if (line) {
+        const fields = line.split(',');
+        if (fields.length >= 2) {
+          const pid = fields[1].replace(/"/g, ''); // Remove quotes
+          pidsToKill.push(pid);
+        }
+      }
+    }
+    
+    // Also try to find by command line containing "imswitch"
+    try {
+      const cmdResult = await runCommand("wmic", ["process", "where", "CommandLine like '%imswitch%'", "get", "ProcessId,CommandLine", "/format:csv"], win);
+      const cmdLines = cmdResult.stdout.split('\n');
+      for (const line of cmdLines) {
+        if (line.includes('imswitch') && line.includes(',')) {
+          const parts = line.split(',');
+          if (parts.length >= 2) {
+            const pid = parts[parts.length - 2].trim();
+            if (pid && !isNaN(pid) && !pidsToKill.includes(pid)) {
+              pidsToKill.push(pid);
+            }
+          }
+        }
+      }
+    } catch (wmicError) {
+      console.log("WMIC command failed, continuing with tasklist results only");
+    }
+    
+    // Kill all found processes
+    for (const pid of pidsToKill) {
+      if (pid && !isNaN(pid)) {
+        try {
+          console.log(`Killing process with PID: ${pid}`);
+          await runCommand("taskkill", ["/F", "/PID", pid], win);
+        } catch (killError) {
+          console.warn(`Failed to kill process ${pid}:`, killError.message);
+        }
+      }
+    }
+    
+    // Additional broad search for any processes with "imswitch" in the name
+    try {
+      await runCommand("taskkill", ["/F", "/IM", "*imswitch*"], win);
+    } catch (error) {
+      console.log("No additional imswitch processes found by name pattern");
+    }
+    
+    console.log(`Attempted to kill ${pidsToKill.length} potential ImSwitch processes`);
+  } catch (error) {
+    console.error("Error in Windows process killing:", error);
   }
+}
 
-  imSwitchChild = null;
+// Unix-specific process killing (macOS and Linux)
+async function killImSwitchProcessesUnix(win) {
+  try {
+    console.log("Searching for ImSwitch processes on Unix system...");
+    
+    // Find all processes with "imswitch" in command line
+    try {
+      const pgrepResult = await runCommand("pgrep", ["-f", "imswitch"], win);
+      const pids = pgrepResult.stdout.trim().split('\n').filter(pid => pid && !isNaN(pid));
+      
+      console.log(`Found ${pids.length} ImSwitch processes to terminate`);
+      
+      // Kill each process, first with SIGTERM, then SIGKILL if needed
+      for (const pid of pids) {
+        try {
+          console.log(`Terminating process ${pid} with SIGTERM`);
+          await runCommand("kill", ["-TERM", pid], win);
+          
+          // Wait a moment and check if process still exists
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          try {
+            // Check if process still exists
+            await runCommand("kill", ["-0", pid], win);
+            // If we get here, process still exists, use SIGKILL
+            console.log(`Process ${pid} still running, using SIGKILL`);
+            await runCommand("kill", ["-KILL", pid], win);
+          } catch (checkError) {
+            // Process doesn't exist anymore, which is what we want
+            console.log(`Process ${pid} terminated successfully`);
+          }
+        } catch (killError) {
+          console.warn(`Failed to kill process ${pid}:`, killError.message);
+        }
+      }
+    } catch (pgrepError) {
+      console.log("pgrep command failed, trying alternative method");
+      
+      // Fallback: use ps and grep
+      try {
+        const psResult = await runCommand("ps", ["aux"], win);
+        const lines = psResult.stdout.split('\n');
+        const pidsToKill = [];
+        
+        for (const line of lines) {
+          if (line.includes('imswitch') && line.includes('python')) {
+            const parts = line.trim().split(/\s+/);
+            if (parts.length >= 2) {
+              const pid = parts[1];
+              if (!isNaN(pid)) {
+                pidsToKill.push(pid);
+              }
+            }
+          }
+        }
+        
+        console.log(`Found ${pidsToKill.length} ImSwitch processes via ps`);
+        
+        for (const pid of pidsToKill) {
+          try {
+            await runCommand("kill", ["-KILL", pid], win);
+            console.log(`Killed process ${pid}`);
+          } catch (killError) {
+            console.warn(`Failed to kill process ${pid}:`, killError.message);
+          }
+        }
+      } catch (psError) {
+        console.error("Both pgrep and ps methods failed:", psError);
+      }
+    }
+    
+    // Additional cleanup: try pkill as a final measure
+    try {
+      await runCommand("pkill", ["-f", "imswitch"], win);
+      console.log("Executed pkill for any remaining imswitch processes");
+    } catch (pkillError) {
+      console.log("pkill command completed (may not have found additional processes)");
+    }
+    
+  } catch (error) {
+    console.error("Error in Unix process killing:", error);
+  }
 }

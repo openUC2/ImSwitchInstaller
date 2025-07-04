@@ -48,7 +48,7 @@ const homeDir = path.join(app.getPath("home"), ".imswitch");
 
 function getOSSpecificHostname() {
   const hostname = os.hostname();
-  
+
   switch (os.platform()) {
     case "win32":
       // Windows usually doesn't respond to *.local
@@ -136,10 +136,10 @@ function getVersion() {
 function runCommand(command, args, win, options = {}) {
     return new Promise((resolve, reject) => {
         console.log(`Executing: ${command} ${args.join(' ')}`);
-        
-        const child = spawn(command, args, { 
+
+        const child = spawn(command, args, {
             stdio: 'pipe',
-            ...options 
+            ...options
         });
 
         let stdout = '';
@@ -184,7 +184,7 @@ function setupMiniforge(win) {
     return new Promise(async (resolve, reject) => {
         try {
             const miniforgePath = path.join(homeDir, "miniforge");
-            
+
             // Check if miniforge already exists
             if (fs.existsSync(miniforgePath)) {
                 console.log("Miniforge already installed");
@@ -223,18 +223,18 @@ function setupMiniforge(win) {
             }
 
             const installerPath = path.join(homeDir, installerName);
-            
-            // TODO: If file exists, remove or rename it first 
+
+            // TODO: If file exists, remove or rename it first
 
 
             // Download the installer # TODO: We want a loading bar to appear that informs us about the download progress
             await downloadFile(downloadUrl, installerPath);
-            
+
             // Make installer executable on Unix systems
             if (platform !== 'win32') {
                 fs.chmodSync(installerPath, '755');
             }
-            
+
             // Install Miniforge
             console.log(`Installing Miniforge to ${miniforgePath}`);
             if (platform === 'win32') {
@@ -254,7 +254,7 @@ function setupMiniforge(win) {
                 try {
                     const contents = fs.readdirSync(miniforgePath);
                     console.log("Contents:", contents);
-                    
+
                     // Check if bin directory exists
                     const binPath = path.join(miniforgePath, "bin");
                     if (fs.existsSync(binPath)) {
@@ -272,10 +272,10 @@ function setupMiniforge(win) {
             }
 
             // Verify installation was successful
-            const condaPath = platform === "win32" 
+            const condaPath = platform === "win32"
                 ? path.join(miniforgePath, "Scripts", "conda.exe")
                 : path.join(miniforgePath, "bin", "conda");
-            
+
             console.log(`Looking for conda at: ${condaPath}`);
             if (!fs.existsSync(condaPath)) {
                 // Try alternative paths that might exist
@@ -287,12 +287,12 @@ function setupMiniforge(win) {
                     throw new Error(`Miniforge installation failed - conda not found at ${condaPath} or ${altCondaPath}`);
                 }
             }
-            
+
             console.log(`Miniforge installed successfully at ${miniforgePath}`);
 
             // Clean up installer
             fs.unlinkSync(installerPath);
-            
+
             resolve(true);
         } catch (error) {
             console.error("Error setting up Miniforge:", error);
@@ -357,7 +357,7 @@ function setupCondaEnvironment(win) {
             // Install specific packages
             console.log("Installing conda packages...");
             win.webContents.send("updateStatus", "Installing conda packages...");
-            await runCommand(actualCondaPath, ["install", "-n", "imswitch311", "-y", "-c", "conda-forge", 
+            await runCommand(actualCondaPath, ["install", "-n", "imswitch311", "-y", "-c", "conda-forge",
                 "h5py", "numcodecs=0.13.1", "scikit-image=0.25.2"], win);
 
             // Clean conda cache
@@ -376,7 +376,7 @@ function installImSwitchPackages(win) {
     return new Promise(async (resolve, reject) => {
         try {
             const miniforgePath = path.join(homeDir, "miniforge");
-            const pipPath = os.platform() === "win32" 
+            const pipPath = os.platform() === "win32"
                 ? path.join(miniforgePath, "envs", "imswitch311", "Scripts", "pip.exe")
                 : path.join(miniforgePath, "envs", "imswitch311", "bin", "pip");
 
@@ -433,7 +433,7 @@ function cloneImSwitchConfig(win) {
     return new Promise(async (resolve, reject) => {
         try {
             const configPath = path.join(homeDir, "ImSwitchConfig");
-            
+
             if (fs.existsSync(configPath)) {
                 console.log("ImSwitchConfig already exists");
                 resolve(true);
@@ -442,9 +442,9 @@ function cloneImSwitchConfig(win) {
 
             console.log("Cloning ImSwitchConfig...");
             win.webContents.send("updateStatus", "Cloning ImSwitchConfig repository...");
-            
+
             await runCommand("git", ["clone", "https://github.com/openUC2/ImSwitchConfig.git", configPath], win);
-            
+
             resolve(true);
         } catch (error) {
             console.error("Error cloning ImSwitchConfig:", error);
@@ -457,8 +457,8 @@ function cloneImSwitchConfig(win) {
 function isImSwitchInstalled() {
     const miniforgePath = path.join(homeDir, "miniforge");
     const envPath = path.join(miniforgePath, "envs", "imswitch311");
-    
-    return fs.existsSync(miniforgePath) && 
+
+    return fs.existsSync(miniforgePath) &&
            fs.existsSync(envPath) ;
 }
 
@@ -523,10 +523,10 @@ app.on("ready", () => {
     win.webContents.once("did-finish-load", () => {
         // Make a directory to house enviornment, settings, etc.
         checkLocalDir();
-        
+
         // Update loading status
         win.webContents.send("updateStatus", "Setting up directories...");
-        
+
         // After initial setup, transition to the main menu
         setTimeout(() => {
             win.webContents.send("updateStatus", "Loading menu...");
@@ -591,13 +591,13 @@ ipcMain.on("openFileDialog", function (event, data) {
 // ImSwitch specific IPC handlers
 ipcMain.on("startImSwitch", async function (event) {
   console.log("Starting ImSwitch process...");
-  
+
   try {
     // Check if ImSwitch is installed, if not, prompt user to install first
     if (!isImSwitchInstalled()) {
       console.log("ImSwitch not found, prompting user to install...");
       win.webContents.send("updateStatus", "ImSwitch is not installed. Please install it first using the 'Install ImSwitch' button in the menu.");
-      
+
       const choice = dialog.showMessageBoxSync(win, {
         type: "question",
         buttons: ["Install Now", "Go to Menu", "Cancel"],
@@ -605,7 +605,7 @@ ipcMain.on("startImSwitch", async function (event) {
         message: "ImSwitch is not installed on this system. Would you like to install it now?",
         detail: "You can also go back to the menu and click 'Install ImSwitch' for a more detailed installation process."
       });
-      
+
       if (choice === 0) {
         // Install now - redirect to install page
         win.loadFile("pages/installImSwitch.html");
@@ -623,16 +623,16 @@ ipcMain.on("startImSwitch", async function (event) {
 
     // Now start ImSwitch
     const miniforgePath = path.join(homeDir, "miniforge");
-    const pythonPath = os.platform() === "win32" 
+    const pythonPath = os.platform() === "win32"
       ? path.join(miniforgePath, "envs", "imswitch311", "python.exe")
       : path.join(miniforgePath, "envs", "imswitch311", "bin", "python");
-    
+
     // TODO: Make this configurable in the future through the GUI as a dropdown
     const configPath = path.join(homeDir, "ImSwitchConfig", "imcontrol_setups", "example_virtual_microscope.json");
-    // "python -m imswitch --headless --http-port 8001 --socket-port 8002 --no-ssl" 
+    // "python -m imswitch --headless --http-port 8001 --socket-port 8002 --no-ssl"
     console.log("Starting ImSwitch in headless mode...");
     win.webContents.send("updateStatus", "Starting ImSwitch...");
-    
+
     // TODO: We want to monitor the command output and display it in the log window and maybe have a loading bar in the gui
     const args = [
       "-m", "imswitch",
@@ -641,35 +641,87 @@ ipcMain.on("startImSwitch", async function (event) {
       "--socket-port", "8002",
       "--no-ssl"
     ];
-    
+
 
     // Spawn and store the child process
     if (imSwitchChild) {
         console.log("ImSwitch is already running. Restarting...");
         await killImSwitchProcess(win);
     }
-    
-    
+
+
     // Start ImSwitch in the background
-    runCommand(pythonPath, args, win)
-      .then(() => {
-        console.log("ImSwitch process completed");
-      })
-      .catch((error) => {
-        console.error("ImSwitcfh process error:", error);
-      });
+    console.log("Starting ImSwitch process...");
+    win.webContents.send("imSwitchStatus", {
+      status: "starting",
+      message: "Launching ImSwitch process..."
+    });
+
+    // Start the process and track it
+    const child = spawn(pythonPath, args, {
+      stdio: 'pipe'
+    });
+
+    // Track the child process globally
+    imSwitchChild = child;
+
+    let stdout = '';
+    let stderr = '';
+
+    child.stdout.on('data', (data) => {
+        const output = data.toString();
+        stdout += output;
+        console.log('ImSwitch stdout:', output);
+        win.webContents.send("updateStatus", output);
+    });
+
+    child.stderr.on('data', (data) => {
+        const output = data.toString();
+        stderr += output;
+        console.log('ImSwitch stderr:', output);
+        win.webContents.send("updateStatus", output);
+    });
+
+    child.on('close', (code) => {
+        console.log(`ImSwitch process exited with code ${code}`);
+        imSwitchChild = null;
+        win.webContents.send("imSwitchStatus", {
+          status: "stopped",
+          message: `ImSwitch process exited with code ${code}`
+        });
+    });
+
+    child.on('error', (error) => {
+        console.error('ImSwitch process error:', error);
+        imSwitchChild = null;
+        win.webContents.send("imSwitchStatus", {
+          status: "error",
+          message: `ImSwitch process error: ${error.message}`
+        });
+    });
+
+    // Wait for the API to become ready, then open the browser
     const localHostname = getOSSpecificHostname();
 
-        setTimeout(() => {
+    // Start API checking in the background
+    waitForImSwitchAPI(win).then((isReady) => {
+      // Open the browser window regardless of API status
       const childWin = new BrowserWindow({
         width: 1200,
         height: 800,
         webPreferences: { nodeIntegration: true, contextIsolation: false },
       });
+
       childWin.loadURL(`http://${localHostname}:8001`).catch((error) => {
         console.error("Failed to load ImSwitch web interface:", error);
+        win.webContents.send("imSwitchStatus", {
+          status: "error",
+          message: `Failed to load web interface: ${error.message}`
+        });
       });
-    }, 50000); //  until we don't see anything we should have a spinner showing the user that something is happening
+    }).catch((error) => {
+      console.error("Error during API checking:", error);
+    });
 
   } catch (error) {
     console.error("Failed to start ImSwitch:", error);
@@ -678,20 +730,46 @@ ipcMain.on("startImSwitch", async function (event) {
   }
 });
 
+// Stop ImSwitch IPC handler
+ipcMain.on("stopImSwitch", async function (event) {
+  console.log("Stopping ImSwitch process...");
+
+  try {
+    win.webContents.send("imSwitchStatus", {
+      status: "stopping",
+      message: "Stopping ImSwitch..."
+    });
+
+    await killImSwitchProcess(win);
+
+    win.webContents.send("imSwitchStatus", {
+      status: "stopped",
+      message: "ImSwitch has been stopped successfully."
+    });
+
+  } catch (error) {
+    console.error("Failed to stop ImSwitch:", error);
+    win.webContents.send("imSwitchStatus", {
+      status: "error",
+      message: `Error stopping ImSwitch: ${error.message}`
+    });
+  }
+});
+
 // Install ImSwitch manually (for menu option)
 ipcMain.on("installImSwitch", async function (event) {
   console.log("Installing ImSwitch...");
-  
+
   try {
     win.webContents.send("updateStatus", "Starting ImSwitch installation...");
-    
+
     await setupMiniforge(win);
     await setupCondaEnvironment(win);
     await installImSwitchPackages(win);
-    
+
     win.webContents.send("updateStatus", "ImSwitch installation complete!");
     event.sender.send("installComplete");
-    
+
   } catch (error) {
     console.error("Installation failed:", error);
     win.webContents.send("updateStatus", `Installation failed: ${error.message}`);
@@ -702,75 +780,75 @@ ipcMain.on("installImSwitch", async function (event) {
 // Install ImSwitch with detailed progress reporting (for dedicated install page)
 ipcMain.on("installImSwitchDetailed", async function (event) {
   console.log("Installing ImSwitch with detailed progress...");
-  
+
   try {
     // Step 1: Install Miniforge
     event.sender.send("installationStep", { step: 1, message: "Installing Miniforge..." });
-    event.sender.send("installationProgress", { 
-      step: 1, 
-      message: "Downloading and installing Miniforge...", 
-      percentage: 10, 
-      stepStatus: "In Progress" 
+    event.sender.send("installationProgress", {
+      step: 1,
+      message: "Downloading and installing Miniforge...",
+      percentage: 10,
+      stepStatus: "In Progress"
     });
-    
+
     await setupMiniforge(win);
-    
-    event.sender.send("installationProgress", { 
-      step: 1, 
-      message: "Miniforge installation complete", 
-      percentage: 25, 
-      stepStatus: "Complete" 
+
+    event.sender.send("installationProgress", {
+      step: 1,
+      message: "Miniforge installation complete",
+      percentage: 25,
+      stepStatus: "Complete"
     });
 
     // Step 2: Create Conda Environment
     event.sender.send("installationStep", { step: 2, message: "Creating conda environment..." });
-    event.sender.send("installationProgress", { 
-      step: 2, 
-      message: "Creating Python 3.11 environment and installing packages...", 
-      percentage: 30, 
-      stepStatus: "In Progress" 
+    event.sender.send("installationProgress", {
+      step: 2,
+      message: "Creating Python 3.11 environment and installing packages...",
+      percentage: 30,
+      stepStatus: "In Progress"
     });
-    
+
     await setupCondaEnvironment(win);
-    
-    event.sender.send("installationProgress", { 
-      step: 2, 
-      message: "Conda environment setup complete", 
-      percentage: 50, 
-      stepStatus: "Complete" 
+
+    event.sender.send("installationProgress", {
+      step: 2,
+      message: "Conda environment setup complete",
+      percentage: 50,
+      stepStatus: "Complete"
     });
 
     // Step 3: Install ImSwitch Packages
     event.sender.send("installationStep", { step: 3, message: "Installing ImSwitch packages..." });
-    event.sender.send("installationProgress", { 
-      step: 3, 
-      message: "Installing UC2-REST, ImSwitch, and psygnal...", 
-      percentage: 60, 
-      stepStatus: "In Progress" 
+    event.sender.send("installationProgress", {
+      step: 3,
+      message: "Installing UC2-REST, ImSwitch, and psygnal...",
+      percentage: 60,
+      stepStatus: "In Progress"
     });
-    
+
     await installImSwitchPackages(win);
-    
-    event.sender.send("installationProgress", { 
-      step: 3, 
-      message: "Package installation complete", 
-      percentage: 75, 
-      stepStatus: "Complete" 
+
+    event.sender.send("installationProgress", {
+      step: 3,
+      message: "Package installation complete",
+      percentage: 75,
+      stepStatus: "Complete"
     });
 
 
-    
-    
-    event.sender.send("installationProgress", { 
-      step: 4, 
-      message: "Configuration download complete", 
-      percentage: 100, 
-      stepStatus: "Complete" 
+
+
+    event.sender.send("installationProgress", {
+      step: 4,
+      message: "Configuration download complete",
+      percentage: 100,
+      stepStatus: "Complete"
     });
 
     console.log("ImSwitch installation completed successfully");
     event.sender.send("installationComplete");
-    
+
   } catch (error) {
     console.error("Installation failed:", error);
     event.sender.send("installationFailed", error.message);
@@ -786,14 +864,14 @@ ipcMain.on("cancelInstallation", function (event) {
 // Update ImSwitch and UC2-REST packages
 ipcMain.on("updateImSwitch", function (event, data) {
   console.log("Updating ImSwitch to the latest version");
-  
+
   const miniforgePath = path.join(homeDir, "miniforge");
-  const pipPath = os.platform() === "win32" 
+  const pipPath = os.platform() === "win32"
     ? path.join(miniforgePath, "envs", "imswitch311", "Scripts", "pip.exe")
     : path.join(miniforgePath, "envs", "imswitch311", "bin", "pip");
 
   let updatePromise = Promise.resolve();
-  
+
   // Check if user wants to update packages
   if (1) {  // (data && data.updatePackages) {
     updatePromise = updatePromise.then(() => {
@@ -816,7 +894,7 @@ ipcMain.on("updateImSwitch", function (event, data) {
       return runCommand(pipPath, ["install", "psygnal", "--no-binary", ":all:"], win);
     });
   }
-  
+
   // TODO: if we reach something like [2025-06-30 21:14:01] Command exited with code 0, we know that the update was successful
   updatePromise
     .then(() => {
@@ -839,7 +917,7 @@ ipcMain.on("openWebInterface", function () {
   }
   else{
     console.log("Main window is available. Proceeding to open web interface.");
-    
+
   }
   console.log("Opening ImSwitch web interface...");
   win.loadURL("http://localhost:8001").catch((error) => {
@@ -851,96 +929,96 @@ ipcMain.on("openWebInterface", function () {
 // Uninstall ImSwitch completely
 ipcMain.on("uninstallImSwitchDetailed", async function (event) {
   console.log("Uninstalling ImSwitch with detailed progress...");
-  
+
   try {
     // Check if ImSwitch is installed before attempting uninstall
     if (!fs.existsSync(homeDir)) {
       console.log("ImSwitch directory does not exist, nothing to uninstall");
-      event.sender.send("uninstallProgress", { 
-        step: 4, 
-        message: "No ImSwitch installation found", 
-        percentage: 100, 
-        stepStatus: "Complete" 
+      event.sender.send("uninstallProgress", {
+        step: 4,
+        message: "No ImSwitch installation found",
+        percentage: 100,
+        stepStatus: "Complete"
       });
       event.sender.send("uninstallComplete");
       return;
     }
-    
+
     // Step 1: Stop ImSwitch process
     event.sender.send("uninstallStep", { step: 1, message: "Stopping ImSwitch process..." });
-    event.sender.send("uninstallProgress", { 
-      step: 1, 
-      message: "Checking for running ImSwitch process...", 
-      percentage: 10, 
-      stepStatus: "In Progress" 
+    event.sender.send("uninstallProgress", {
+      step: 1,
+      message: "Checking for running ImSwitch process...",
+      percentage: 10,
+      stepStatus: "In Progress"
     });
-    
+
     await stopImSwitchProcess(win);
-    
-    event.sender.send("uninstallProgress", { 
-      step: 1, 
-      message: "ImSwitch process stopped", 
-      percentage: 25, 
-      stepStatus: "Complete" 
+
+    event.sender.send("uninstallProgress", {
+      step: 1,
+      message: "ImSwitch process stopped",
+      percentage: 25,
+      stepStatus: "Complete"
     });
 
     // Step 2: Remove Python environment (miniforge)
     event.sender.send("uninstallStep", { step: 2, message: "Removing Python environment..." });
-    event.sender.send("uninstallProgress", { 
-      step: 2, 
-      message: "Removing Miniforge and Python packages...", 
-      percentage: 30, 
-      stepStatus: "In Progress" 
+    event.sender.send("uninstallProgress", {
+      step: 2,
+      message: "Removing Miniforge and Python packages...",
+      percentage: 30,
+      stepStatus: "In Progress"
     });
-    
+
     await removeMiniforgePath(win);
-    
-    event.sender.send("uninstallProgress", { 
-      step: 2, 
-      message: "Python environment removed", 
-      percentage: 60, 
-      stepStatus: "Complete" 
+
+    event.sender.send("uninstallProgress", {
+      step: 2,
+      message: "Python environment removed",
+      percentage: 60,
+      stepStatus: "Complete"
     });
 
     // Step 3: Remove configuration files
     event.sender.send("uninstallStep", { step: 3, message: "Removing configuration files..." });
-    event.sender.send("uninstallProgress", { 
-      step: 3, 
-      message: "Removing ImSwitch configuration...", 
-      percentage: 65, 
-      stepStatus: "In Progress" 
+    event.sender.send("uninstallProgress", {
+      step: 3,
+      message: "Removing ImSwitch configuration...",
+      percentage: 65,
+      stepStatus: "In Progress"
     });
-    
+
     await removeConfigPath(win);
-    
-    event.sender.send("uninstallProgress", { 
-      step: 3, 
-      message: "Configuration files removed", 
-      percentage: 85, 
-      stepStatus: "Complete" 
+
+    event.sender.send("uninstallProgress", {
+      step: 3,
+      message: "Configuration files removed",
+      percentage: 85,
+      stepStatus: "Complete"
     });
 
     // Step 4: Clean up ImSwitch directory
     event.sender.send("uninstallStep", { step: 4, message: "Cleaning up directory..." });
-    event.sender.send("uninstallProgress", { 
-      step: 4, 
-      message: "Removing remaining files...", 
-      percentage: 90, 
-      stepStatus: "In Progress" 
+    event.sender.send("uninstallProgress", {
+      step: 4,
+      message: "Removing remaining files...",
+      percentage: 90,
+      stepStatus: "In Progress"
     });
-    
+
     await cleanupImSwitchDirectory(win);
-    
-    event.sender.send("uninstallProgress", { 
-      step: 4, 
-      message: "Directory cleanup complete", 
-      percentage: 100, 
-      stepStatus: "Complete" 
+
+    event.sender.send("uninstallProgress", {
+      step: 4,
+      message: "Directory cleanup complete",
+      percentage: 100,
+      stepStatus: "Complete"
     });
 
     console.log("ImSwitch uninstallation completed successfully");
     event.sender.send("uninstallComplete");
-    
+
   } catch (error) {
     console.error("Uninstallation failed:", error);
     event.sender.send("uninstallFailed", error.message);
@@ -956,7 +1034,7 @@ ipcMain.on("cancelUninstallation", function (event) {
 // Force kill all ImSwitch processes (useful for troubleshooting)
 ipcMain.on("forceKillImSwitch", async function (event) {
   console.log("Force killing all ImSwitch processes...");
-  
+
   try {
     await killImSwitchProcess(win);
     event.sender.send("forceKillComplete", "All ImSwitch processes have been terminated.");
@@ -971,10 +1049,10 @@ async function stopImSwitchProcess(win) {
     try {
         console.log("Stopping all ImSwitch processes...");
         win.webContents.send("updateStatus", "Searching for and stopping all ImSwitch processes...");
-        
+
         // Kill any running ImSwitch process system-wide
         await killImSwitchProcess(win);
-        
+
         console.log("ImSwitch process stopping completed");
         return true;
     } catch (error) {
@@ -990,14 +1068,14 @@ function removeMiniforgePath(win) {
             const miniforgePath = path.join(homeDir, "miniforge");
             console.log(`Removing miniforge directory: ${miniforgePath}`);
             win.webContents.send("updateStatus", "Removing Python environment...");
-            
+
             if (fs.existsSync(miniforgePath)) {
                 fs.rmSync(miniforgePath, { recursive: true, force: true });
                 console.log("Miniforge directory removed successfully");
             } else {
                 console.log("Miniforge directory does not exist, skipping...");
             }
-            
+
             resolve(true);
         } catch (error) {
             console.error("Error removing miniforge directory:", error);
@@ -1012,14 +1090,14 @@ function removeConfigPath(win) {
             const configPath = path.join(homeDir, "ImSwitchConfig");
             console.log(`Removing config directory: ${configPath}`);
             win.webContents.send("updateStatus", "Removing configuration files...");
-            
+
             if (fs.existsSync(configPath)) {
                 fs.rmSync(configPath, { recursive: true, force: true });
                 console.log("ImSwitchConfig directory removed successfully");
             } else {
                 console.log("ImSwitchConfig directory does not exist, skipping...");
             }
-            
+
             resolve(true);
         } catch (error) {
             console.error("Error removing config directory:", error);
@@ -1033,7 +1111,7 @@ function cleanupImSwitchDirectory(win) {
         try {
             console.log(`Cleaning up ImSwitch directory: ${homeDir}`);
             win.webContents.send("updateStatus", "Cleaning up remaining files...");
-            
+
             if (fs.existsSync(homeDir)) {
                 // Remove any remaining files in the directory
                 const files = fs.readdirSync(homeDir);
@@ -1049,7 +1127,7 @@ function cleanupImSwitchDirectory(win) {
                         console.warn(`Could not remove ${filePath}:`, fileError.message);
                     }
                 }
-                
+
                 // Try to remove the main directory if it's empty
                 try {
                     fs.rmdirSync(homeDir);
@@ -1061,7 +1139,7 @@ function cleanupImSwitchDirectory(win) {
             } else {
                 console.log("ImSwitch directory does not exist, skipping...");
             }
-            
+
             resolve(true);
         } catch (error) {
             console.error("Error cleaning up ImSwitch directory:", error);
@@ -1086,6 +1164,66 @@ function setUTF8Encoding(win) {
     });
 }
 
+// Function to check if ImSwitch API is ready by polling the openapi.json endpoint
+async function waitForImSwitchAPI(win, maxAttempts = 60, intervalMs = 2000) {
+  const localHostname = getOSSpecificHostname();
+  const apiUrl = `http://${localHostname}:8001/openapi.json`;
+
+  console.log(`Checking ImSwitch API readiness at ${apiUrl}`);
+  win.webContents.send("imSwitchStatus", {
+    status: "checking-api",
+    message: "Waiting for ImSwitch API to become ready..."
+  });
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      console.log(`API check attempt ${attempt}/${maxAttempts}`);
+
+      // Use node-fetch with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
+      const response = await serverFetch(apiUrl, {
+        method: 'GET',
+        signal: controller.signal,
+        timeout: 5000
+      });
+
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data && (data.openapi || data.swagger)) {
+          console.log("ImSwitch API is ready!");
+          win.webContents.send("imSwitchStatus", {
+            status: "ready",
+            message: "ImSwitch API is ready! Opening web interface..."
+          });
+          return true;
+        }
+      }
+    } catch (error) {
+      // Expected for the first several attempts while ImSwitch is starting up
+      console.log(`API check attempt ${attempt} failed: ${error.message}`);
+    }
+
+    if (attempt < maxAttempts) {
+      win.webContents.send("imSwitchStatus", {
+        status: "checking-api",
+        message: `Waiting for ImSwitch API... (attempt ${attempt}/${maxAttempts})`
+      });
+      await new Promise(resolve => setTimeout(resolve, intervalMs));
+    }
+  }
+
+  console.log("ImSwitch API did not become ready within the timeout period");
+  win.webContents.send("imSwitchStatus", {
+    status: "error",
+    message: "ImSwitch API did not become ready within the expected time. Opening interface anyway..."
+  });
+  return false;
+}
+
 // Track the ImSwitch process globally
 let imSwitchChild = null;
 
@@ -1094,7 +1232,7 @@ let imSwitchChild = null;
 // Function to force-stop ImSwitch - kills ALL ImSwitch processes system-wide
 async function killImSwitchProcess(win) {
   console.log("Searching for and terminating all ImSwitch processes...");
-  
+
   try {
     if (process.platform === "win32") {
       // Windows: Find and kill all python processes running imswitch
@@ -1103,7 +1241,7 @@ async function killImSwitchProcess(win) {
       // macOS and Linux: Find and kill all python processes running imswitch
       await killImSwitchProcessesUnix(win);
     }
-    
+
     // Also kill the tracked process if it exists
     if (imSwitchChild) {
       console.log(`Killing tracked ImSwitch process with PID: ${imSwitchChild.pid}`);
@@ -1118,7 +1256,7 @@ async function killImSwitchProcess(win) {
       }
       imSwitchChild = null;
     }
-    
+
     console.log("ImSwitch process termination completed");
   } catch (error) {
     console.error("Error during ImSwitch process termination:", error);
@@ -1130,11 +1268,11 @@ async function killImSwitchProcess(win) {
 async function killImSwitchProcessesWindows(win) {
   try {
     console.log("Searching for ImSwitch processes on Windows...");
-    
+
     // Find all python processes running imswitch
     const findResult = await runCommand("tasklist", ["/FI", "IMAGENAME eq python.exe", "/FO", "CSV"], win);
     const lines = findResult.stdout.split('\n');
-    
+
     // Parse CSV output to find PIDs
     const pidsToKill = [];
     for (let i = 1; i < lines.length; i++) { // Skip header
@@ -1147,7 +1285,7 @@ async function killImSwitchProcessesWindows(win) {
         }
       }
     }
-    
+
     // Also try to find by command line containing "imswitch"
     try {
       const cmdResult = await runCommand("wmic", ["process", "where", "CommandLine like '%imswitch%'", "get", "ProcessId,CommandLine", "/format:csv"], win);
@@ -1166,7 +1304,7 @@ async function killImSwitchProcessesWindows(win) {
     } catch (wmicError) {
       console.log("WMIC command failed, continuing with tasklist results only");
     }
-    
+
     // Kill all found processes
     for (const pid of pidsToKill) {
       if (pid && !isNaN(pid)) {
@@ -1178,14 +1316,14 @@ async function killImSwitchProcessesWindows(win) {
         }
       }
     }
-    
+
     // Additional broad search for any processes with "imswitch" in the name
     try {
       await runCommand("taskkill", ["/F", "/IM", "*imswitch*"], win);
     } catch (error) {
       console.log("No additional imswitch processes found by name pattern");
     }
-    
+
     console.log(`Attempted to kill ${pidsToKill.length} potential ImSwitch processes`);
   } catch (error) {
     console.error("Error in Windows process killing:", error);
@@ -1196,23 +1334,23 @@ async function killImSwitchProcessesWindows(win) {
 async function killImSwitchProcessesUnix(win) {
   try {
     console.log("Searching for ImSwitch processes on Unix system...");
-    
+
     // Find all processes with "imswitch" in command line
     try {
       const pgrepResult = await runCommand("pgrep", ["-f", "imswitch"], win);
       const pids = pgrepResult.stdout.trim().split('\n').filter(pid => pid && !isNaN(pid));
-      
+
       console.log(`Found ${pids.length} ImSwitch processes to terminate`);
-      
+
       // Kill each process, first with SIGTERM, then SIGKILL if needed
       for (const pid of pids) {
         try {
           console.log(`Terminating process ${pid} with SIGTERM`);
           await runCommand("kill", ["-TERM", pid], win);
-          
+
           // Wait a moment and check if process still exists
           await new Promise(resolve => setTimeout(resolve, 1000));
-          
+
           try {
             // Check if process still exists
             await runCommand("kill", ["-0", pid], win);
@@ -1229,13 +1367,13 @@ async function killImSwitchProcessesUnix(win) {
       }
     } catch (pgrepError) {
       console.log("pgrep command failed, trying alternative method");
-      
+
       // Fallback: use ps and grep
       try {
         const psResult = await runCommand("ps", ["aux"], win);
         const lines = psResult.stdout.split('\n');
         const pidsToKill = [];
-        
+
         for (const line of lines) {
           if (line.includes('imswitch') && line.includes('python')) {
             const parts = line.trim().split(/\s+/);
@@ -1247,9 +1385,9 @@ async function killImSwitchProcessesUnix(win) {
             }
           }
         }
-        
+
         console.log(`Found ${pidsToKill.length} ImSwitch processes via ps`);
-        
+
         for (const pid of pidsToKill) {
           try {
             await runCommand("kill", ["-KILL", pid], win);
@@ -1262,7 +1400,7 @@ async function killImSwitchProcessesUnix(win) {
         console.error("Both pgrep and ps methods failed:", psError);
       }
     }
-    
+
     // Additional cleanup: try pkill as a final measure
     try {
       await runCommand("pkill", ["-f", "imswitch"], win);
@@ -1270,7 +1408,7 @@ async function killImSwitchProcessesUnix(win) {
     } catch (pkillError) {
       console.log("pkill command completed (may not have found additional processes)");
     }
-    
+
   } catch (error) {
     console.error("Error in Unix process killing:", error);
   }

@@ -855,6 +855,12 @@ ipcMain.on("installImSwitchDetailed", async function (event) {
   }
 });
 
+// Cancel update operation
+ipcMain.on("cancelUpdate", function (event) {
+  console.log("Update cancellation requested");
+  // TODO: Implement proper cancellation logic if needed
+});
+
 // Cancel installation (placeholder for future implementation)
 ipcMain.on("cancelInstallation", function (event) {
   console.log("Installation cancellation requested");
@@ -907,6 +913,85 @@ ipcMain.on("updateImSwitch", function (event, data) {
       win.webContents.send("updateStatus", "Update failed. Check console for details.");
       event.sender.send("updateFailed", error.message);
     });
+});
+
+// Update ImSwitch with detailed progress reporting (for dedicated update page)
+ipcMain.on("updateImSwitchDetailed", async function (event) {
+  console.log("Updating ImSwitch with detailed progress...");
+  
+  try {
+    const miniforgePath = path.join(homeDir, "miniforge");
+    const pipPath = os.platform() === "win32" 
+      ? path.join(miniforgePath, "envs", "imswitch311", "Scripts", "pip.exe")
+      : path.join(miniforgePath, "envs", "imswitch311", "bin", "pip");
+
+    // Check if miniforge exists before proceeding
+    if (!fs.existsSync(miniforgePath)) {
+      throw new Error("ImSwitch is not installed. Please install ImSwitch first.");
+    }
+
+    // Step 1: Update UC2-REST Package
+    event.sender.send("updateStep", { step: 1, message: "Updating UC2-REST package..." });
+    event.sender.send("updateProgress", { 
+      step: 1, 
+      message: "Downloading and installing latest UC2-REST...", 
+      percentage: 10, 
+      stepStatus: "In Progress" 
+    });
+    
+    await runCommand(pipPath, ["install", "--upgrade", "https://github.com/openUC2/UC2-REST/archive/master.zip", "--no-cache", "--force-reinstall"], win);
+    
+    event.sender.send("updateProgress", { 
+      step: 1, 
+      message: "UC2-REST package updated successfully", 
+      percentage: 33, 
+      stepStatus: "Complete" 
+    });
+
+    // Step 2: Update ImSwitch Package
+    event.sender.send("updateStep", { step: 2, message: "Updating ImSwitch package..." });
+    event.sender.send("updateProgress", { 
+      step: 2, 
+      message: "Downloading and installing latest ImSwitch...", 
+      percentage: 40, 
+      stepStatus: "In Progress" 
+    });
+    
+    await runCommand(pipPath, ["install", "--upgrade", "https://github.com/openUC2/ImSwitch/archive/master.zip", "--no-cache", "--force-reinstall"], win);
+    
+    event.sender.send("updateProgress", { 
+      step: 2, 
+      message: "ImSwitch package updated successfully", 
+      percentage: 66, 
+      stepStatus: "Complete" 
+    });
+
+    // Step 3: Verify Installation
+    event.sender.send("updateStep", { step: 3, message: "Verifying installation..." });
+    event.sender.send("updateProgress", { 
+      step: 3, 
+      message: "Checking updated packages...", 
+      percentage: 85, 
+      stepStatus: "In Progress" 
+    });
+    
+    // Simple verification - just check if pip command runs successfully
+    await runCommand(pipPath, ["list"], win);
+    
+    event.sender.send("updateProgress", { 
+      step: 3, 
+      message: "Update verification complete", 
+      percentage: 100, 
+      stepStatus: "Complete" 
+    });
+
+    console.log("Update completed successfully");
+    event.sender.send("updateComplete");
+    
+  } catch (error) {
+    console.error("Update failed:", error);
+    event.sender.send("updateFailed", error.message);
+  }
 });
 
 // Open ImSwitch web interface in current window

@@ -840,6 +840,203 @@ ipcMain.on("openWebInterface", function () {
   });
 });
 
+// Uninstall ImSwitch completely
+ipcMain.on("uninstallImSwitchDetailed", async function (event) {
+  console.log("Uninstalling ImSwitch with detailed progress...");
+  
+  try {
+    // Step 1: Stop ImSwitch process
+    event.sender.send("uninstallStep", { step: 1, message: "Stopping ImSwitch process..." });
+    event.sender.send("uninstallProgress", { 
+      step: 1, 
+      message: "Checking for running ImSwitch process...", 
+      percentage: 10, 
+      stepStatus: "In Progress" 
+    });
+    
+    await stopImSwitchProcess(win);
+    
+    event.sender.send("uninstallProgress", { 
+      step: 1, 
+      message: "ImSwitch process stopped", 
+      percentage: 25, 
+      stepStatus: "Complete" 
+    });
+
+    // Step 2: Remove Python environment (miniforge)
+    event.sender.send("uninstallStep", { step: 2, message: "Removing Python environment..." });
+    event.sender.send("uninstallProgress", { 
+      step: 2, 
+      message: "Removing Miniforge and Python packages...", 
+      percentage: 30, 
+      stepStatus: "In Progress" 
+    });
+    
+    await removeMiniforgePath(win);
+    
+    event.sender.send("uninstallProgress", { 
+      step: 2, 
+      message: "Python environment removed", 
+      percentage: 60, 
+      stepStatus: "Complete" 
+    });
+
+    // Step 3: Remove configuration files
+    event.sender.send("uninstallStep", { step: 3, message: "Removing configuration files..." });
+    event.sender.send("uninstallProgress", { 
+      step: 3, 
+      message: "Removing ImSwitch configuration...", 
+      percentage: 65, 
+      stepStatus: "In Progress" 
+    });
+    
+    await removeConfigPath(win);
+    
+    event.sender.send("uninstallProgress", { 
+      step: 3, 
+      message: "Configuration files removed", 
+      percentage: 85, 
+      stepStatus: "Complete" 
+    });
+
+    // Step 4: Clean up ImSwitch directory
+    event.sender.send("uninstallStep", { step: 4, message: "Cleaning up directory..." });
+    event.sender.send("uninstallProgress", { 
+      step: 4, 
+      message: "Removing remaining files...", 
+      percentage: 90, 
+      stepStatus: "In Progress" 
+    });
+    
+    await cleanupImSwitchDirectory(win);
+    
+    event.sender.send("uninstallProgress", { 
+      step: 4, 
+      message: "Directory cleanup complete", 
+      percentage: 100, 
+      stepStatus: "Complete" 
+    });
+
+    console.log("ImSwitch uninstallation completed successfully");
+    event.sender.send("uninstallComplete");
+    
+  } catch (error) {
+    console.error("Uninstallation failed:", error);
+    event.sender.send("uninstallFailed", error.message);
+  }
+});
+
+// Cancel uninstallation (placeholder for future implementation)
+ipcMain.on("cancelUninstallation", function (event) {
+  console.log("Uninstallation cancellation requested");
+  // TODO: Implement proper cancellation logic if needed
+});
+
+// Uninstall helper functions
+function stopImSwitchProcess(win) {
+    return new Promise((resolve, reject) => {
+        try {
+            console.log("Stopping ImSwitch process...");
+            win.webContents.send("updateStatus", "Stopping ImSwitch process...");
+            
+            // Kill any running ImSwitch process
+            killImSwitchProcess(win);
+            
+            resolve(true);
+        } catch (error) {
+            console.error("Error stopping ImSwitch process:", error);
+            // Don't fail the uninstall if we can't stop the process
+            resolve(true);
+        }
+    });
+}
+
+function removeMiniforgePath(win) {
+    return new Promise((resolve, reject) => {
+        try {
+            const miniforgePath = path.join(homeDir, "miniforge");
+            console.log(`Removing miniforge directory: ${miniforgePath}`);
+            win.webContents.send("updateStatus", "Removing Python environment...");
+            
+            if (fs.existsSync(miniforgePath)) {
+                fs.rmSync(miniforgePath, { recursive: true, force: true });
+                console.log("Miniforge directory removed successfully");
+            } else {
+                console.log("Miniforge directory does not exist, skipping...");
+            }
+            
+            resolve(true);
+        } catch (error) {
+            console.error("Error removing miniforge directory:", error);
+            reject(error);
+        }
+    });
+}
+
+function removeConfigPath(win) {
+    return new Promise((resolve, reject) => {
+        try {
+            const configPath = path.join(homeDir, "ImSwitchConfig");
+            console.log(`Removing config directory: ${configPath}`);
+            win.webContents.send("updateStatus", "Removing configuration files...");
+            
+            if (fs.existsSync(configPath)) {
+                fs.rmSync(configPath, { recursive: true, force: true });
+                console.log("ImSwitchConfig directory removed successfully");
+            } else {
+                console.log("ImSwitchConfig directory does not exist, skipping...");
+            }
+            
+            resolve(true);
+        } catch (error) {
+            console.error("Error removing config directory:", error);
+            reject(error);
+        }
+    });
+}
+
+function cleanupImSwitchDirectory(win) {
+    return new Promise((resolve, reject) => {
+        try {
+            console.log(`Cleaning up ImSwitch directory: ${homeDir}`);
+            win.webContents.send("updateStatus", "Cleaning up remaining files...");
+            
+            if (fs.existsSync(homeDir)) {
+                // Remove any remaining files in the directory
+                const files = fs.readdirSync(homeDir);
+                for (const file of files) {
+                    const filePath = path.join(homeDir, file);
+                    try {
+                        if (fs.statSync(filePath).isDirectory()) {
+                            fs.rmSync(filePath, { recursive: true, force: true });
+                        } else {
+                            fs.unlinkSync(filePath);
+                        }
+                    } catch (fileError) {
+                        console.warn(`Could not remove ${filePath}:`, fileError.message);
+                    }
+                }
+                
+                // Try to remove the main directory if it's empty
+                try {
+                    fs.rmdirSync(homeDir);
+                    console.log("ImSwitch directory removed successfully");
+                } catch (dirError) {
+                    // Directory might not be empty, that's okay
+                    console.log("ImSwitch directory cleanup completed (some files may remain)");
+                }
+            } else {
+                console.log("ImSwitch directory does not exist, skipping...");
+            }
+            
+            resolve(true);
+        } catch (error) {
+            console.error("Error cleaning up ImSwitch directory:", error);
+            reject(error);
+        }
+    });
+}
+
 function setUTF8Encoding(win) {
     return new Promise(async (resolve, reject) => {
         try {

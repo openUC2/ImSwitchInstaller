@@ -845,6 +845,19 @@ ipcMain.on("uninstallImSwitchDetailed", async function (event) {
   console.log("Uninstalling ImSwitch with detailed progress...");
   
   try {
+    // Check if ImSwitch is installed before attempting uninstall
+    if (!fs.existsSync(homeDir)) {
+      console.log("ImSwitch directory does not exist, nothing to uninstall");
+      event.sender.send("uninstallProgress", { 
+        step: 4, 
+        message: "No ImSwitch installation found", 
+        percentage: 100, 
+        stepStatus: "Complete" 
+      });
+      event.sender.send("uninstallComplete");
+      return;
+    }
+    
     // Step 1: Stop ImSwitch process
     event.sender.send("uninstallStep", { step: 1, message: "Stopping ImSwitch process..." });
     event.sender.send("uninstallProgress", { 

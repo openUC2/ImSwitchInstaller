@@ -457,11 +457,9 @@ function cloneImSwitchConfig(win) {
 function isImSwitchInstalled() {
     const miniforgePath = path.join(homeDir, "miniforge");
     const envPath = path.join(miniforgePath, "envs", "imswitch311");
-    const configPath = path.join(homeDir, "ImSwitchConfig");
     
     return fs.existsSync(miniforgePath) && 
-           fs.existsSync(envPath) && 
-           fs.existsSync(configPath);
+           fs.existsSync(envPath) ;
 }
 
 // Makes the local user writable folder

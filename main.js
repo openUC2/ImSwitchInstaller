@@ -55,7 +55,7 @@ function getOSSpecificHostname() {
       return hostname; // e.g., "DESKTOP-ABC123"
     case "darwin":
       // macOS often responds to "<hostname>.local"
-      return hostname + ".local";
+      return hostname;
     case "linux":
     default:
       // Many Linux distros may handle just hostname
@@ -656,7 +656,7 @@ ipcMain.on("startImSwitch", async function (event) {
         console.log("ImSwitch process completed");
       })
       .catch((error) => {
-        console.error("ImSwitch process error:", error);
+        console.error("ImSwitcfh process error:", error);
       });
     const localHostname = getOSSpecificHostname();
 
@@ -804,6 +804,16 @@ ipcMain.on("updateImSwitch", function (event, data) {
       win.webContents.send("updateStatus", "Updating ImSwitch package...");
         console.log("Updating ImSwitch package...");
       return runCommand(pipPath, ["install", "--upgrade", "https://github.com/openUC2/ImSwitch/archive/master.zip", "--no-cache", "--force-reinstall"], win);
+    });
+    // we need to uninstall psygnal first, because it is not compatible with the new version and then reinstall it using the no-binary flag
+    updatePromise = updatePromise.then(() => {
+      win.webContents.send("updateStatus", "Uninstalling psygnal package...");
+      console.log("Uninstalling psygnal package...");
+      return runCommand(pipPath, ["uninstall", "psygnal", "-y"], win);
+    }).then(() => {
+      win.webContents.send("updateStatus", "Installing psygnal package...");
+      console.log("Installing psygnal package...");
+      return runCommand(pipPath, ["install", "psygnal", "--no-binary", ":all:"], win);
     });
   }
   

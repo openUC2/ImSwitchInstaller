@@ -669,7 +669,7 @@ ipcMain.on("startImSwitch", async function (event) {
       childWin.loadURL(`http://${localHostname}:8001`).catch((error) => {
         console.error("Failed to load ImSwitch web interface:", error);
       });
-    }, 5000);
+    }, 50000); //  until we don't see anything we should have a spinner showing the user that something is happening
 
   } catch (error) {
     console.error("Failed to start ImSwitch:", error);

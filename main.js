@@ -888,7 +888,7 @@ ipcMain.on("updateImSwitch", function (event, data) {
     }).then(() => {
       win.webContents.send("updateStatus", "Updating ImSwitch package...");
         console.log("Updating ImSwitch package...");
-      return runCommand(pipPath, ["install", "--upgrade", "https://github.com/openUC2/ImSwitch/archive/master.zip", "--no-cache", "--force-reinstall"], win);
+      return runCommand(pipPath, ["install", "--upgrade", "imswitchuc2"], win);  
     });
     // we need to uninstall psygnal first, because it is not compatible with the new version and then reinstall it using the no-binary flag
     updatePromise = updatePromise.then(() => {
@@ -956,9 +956,17 @@ ipcMain.on("updateImSwitchDetailed", async function (event) {
       percentage: 40, 
       stepStatus: "In Progress" 
     });
+    await runCommand(pipPath, ["install", "--upgrade", "imswitchuc2"], win);  
+    //await runCommand(pipPath, ["install", "--upgrade", "https://github.com/openUC2/ImSwitch/archive/master.zip", "--no-cache", "--force-reinstall"], win);
     
-    await runCommand(pipPath, ["install", "--upgrade", "https://github.com/openUC2/ImSwitch/archive/master.zip", "--no-cache", "--force-reinstall"], win);
-    
+    console.log("Uninstalling psygnal...");
+    win.webContents.send("updateStatus", "Uninstalling psygnal...");
+    await runCommand(pipPath, ["uninstall", "psygnal", "-y"], win);
+
+    console.log("Installing psygnal...");
+    win.webContents.send("updateStatus", "Installing psygnal...");
+    await runCommand(pipPath, ["install", "psygnal", "--no-binary", ":all:"], win);
+        
     event.sender.send("updateProgress", { 
       step: 2, 
       message: "ImSwitch package updated successfully", 

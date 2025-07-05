@@ -40,7 +40,7 @@
           <a role="button" class="btn btn-primary" href="./startImSwitch.html"
             >Start ImSwitch</a>
           <button type="button" class="btn btn-success" id="openWebInterface"
-            >Open ImSwitch Web Interface</button>  <!-- TODO: Nothing happens here -->
+            >Open ImSwitch Web Interface</button>  <!-- TODO: Nothing happens here:=> We want to open http://hostname:8001 in a new window-->
           <a role="button" class="btn btn-primary" href="./updateImSwitch.html"
             >Update ImSwitch</a>
           <a role="button" class="btn btn-primary" href="./installESPDrivers.html"
@@ -50,7 +50,9 @@
           <a role="button" class="btn btn-primary" href="./setupConfig.html"
             >Setup Configuration</a>
           <a role="button" class="btn btn-primary" href="./fastAPI.html"
-            >FastAPI</a>                    
+            >FastAPI</a>
+          <a role="button" class="btn btn-danger" href="./uninstallImSwitch.html"
+            >Uninstall ImSwitch</a>                    
         </div>
     </div>
     <script
@@ -58,12 +60,6 @@
       integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p"
       crossorigin="anonymous"
     ></script>
-    <script>
-      var ipc = require("electron").ipcRenderer;
-      
-      document.getElementById("openWebInterface").addEventListener("click", function() {
-        ipc.send("openWebInterface");
-      });
-    </script>
+    <script type="module" src="../js/openWebInterface.js"></script>
   </body>
 </html>

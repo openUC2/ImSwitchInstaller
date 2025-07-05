@@ -1429,6 +1429,18 @@ async function killImSwitchProcessesUnix(win) {
   try {
     console.log("Searching for ImSwitch processes on Unix system...");
 
+    // For macOS, try the port-based approach first (more precise)
+    if (process.platform === "darwin") {
+      try {
+        console.log("Attempting to kill ImSwitch processes using port 8001 (macOS)...");
+        // Use lsof to find processes using port 8001 and kill them with kill -9
+        await runCommand("sh", ["-c", "kill -9 $(lsof -ti:8001) 2>/dev/null || true"], win);
+        console.log("Port-based process termination completed");
+      } catch (portKillError) {
+        console.log("Port-based kill method completed (may not have found processes on port 8001)");
+      }
+    }
+
     // Find all processes with "imswitch" in command line
     try {
       const pgrepResult = await runCommand("pgrep", ["-f", "imswitch"], win);

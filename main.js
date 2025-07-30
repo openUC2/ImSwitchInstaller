@@ -1002,6 +1002,289 @@ ipcMain.on("updateImSwitchDetailed", async function (event) {
   }
 });
 
+// Microscope Discovery Functions
+async function discoverMicroscopes(event) {
+    const discoveredMicroscopes = new Map();
+    let totalProgress = 0;
+    const maxProgress = 100;
+
+    try {
+        // Step 1: Scan for WiFi networks with openUC2 prefix (25% of progress)
+        event.sender.send("discovery-progress", { percentage: 10, message: "Scanning for WiFi networks..." });
+        await scanWiFiNetworks(event, discoveredMicroscopes);
+        totalProgress += 25;
+        event.sender.send("discovery-progress", { percentage: totalProgress, message: "WiFi scan complete" });
+
+        // Step 2: Scan local network for microscopes (60% of progress) 
+        event.sender.send("discovery-progress", { percentage: totalProgress + 5, message: "Scanning local network..." });
+        await scanLocalNetwork(event, discoveredMicroscopes);
+        totalProgress += 60;
+        event.sender.send("discovery-progress", { percentage: totalProgress, message: "Network scan complete" });
+
+        // Step 3: Verify discovered microscopes (15% of progress)
+        event.sender.send("discovery-progress", { percentage: totalProgress + 5, message: "Verifying microscopes..." });
+        await verifyMicroscopes(event, discoveredMicroscopes);
+        totalProgress = 100;
+        event.sender.send("discovery-progress", { percentage: totalProgress, message: "Discovery complete" });
+
+        console.log(`Discovery complete. Found ${discoveredMicroscopes.size} microscopes.`);
+    } catch (error) {
+        console.error("Error during microscope discovery:", error);
+        event.sender.send("discovery-progress", { percentage: 100, message: "Discovery failed" });
+    }
+
+    event.sender.send("discovery-complete");
+}
+
+async function scanWiFiNetworks(event, discoveredMicroscopes) {
+    try {
+        // On different platforms, we need different approaches to scan WiFi
+        const platform = os.platform();
+        let wifiNetworks = [];
+
+        if (platform === 'win32') {
+            // Windows: Use netsh command
+            try {
+                const { stdout } = await exec('netsh wlan show profiles');
+                const profiles = stdout.split('\n')
+                    .filter(line => line.includes('All User Profile'))
+                    .map(line => line.split(':')[1]?.trim())
+                    .filter(profile => profile && profile.startsWith('openUC2'));
+                
+                wifiNetworks = profiles;
+            } catch (error) {
+                console.log("Windows WiFi scan failed:", error.message);
+            }
+        } else if (platform === 'darwin') {
+            // macOS: Use airport command or system_profiler
+            try {
+                const { stdout } = await exec('/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport -s');
+                wifiNetworks = stdout.split('\n')
+                    .filter(line => line.includes('openUC2'))
+                    .map(line => line.trim().split(/\s+/)[0]);
+            } catch (error) {
+                console.log("macOS WiFi scan failed:", error.message);
+            }
+        } else if (platform === 'linux') {
+            // Linux: Use nmcli or iwlist
+            try {
+                const { stdout } = await exec('nmcli -t -f SSID dev wifi list');
+                wifiNetworks = stdout.split('\n')
+                    .filter(ssid => ssid.startsWith('openUC2'));
+            } catch (error) {
+                // Try iwlist as fallback
+                try {
+                    const { stdout: iwlistOut } = await exec('iwlist scan | grep ESSID');
+                    wifiNetworks = iwlistOut.split('\n')
+                        .map(line => line.match(/ESSID:"([^"]*)"/)?.[1])
+                        .filter(ssid => ssid && ssid.startsWith('openUC2'));
+                } catch (iwlistError) {
+                    console.log("Linux WiFi scan failed:", error.message, iwlistError.message);
+                }
+            }
+        }
+
+        // For each discovered WiFi network, add a potential microscope
+        wifiNetworks.forEach(ssid => {
+            if (ssid && ssid.startsWith('openUC2')) {
+                const microscope = {
+                    id: `wifi_${ssid}`,
+                    name: `Microscope ${ssid}`,
+                    host: '192.168.4.1', // Default IP for WiFi hotspot
+                    port: 8001,
+                    status: 'discovered',
+                    discoveryType: 'WiFi Hotspot',
+                    ssid: ssid,
+                    lastSeen: Date.now()
+                };
+                
+                discoveredMicroscopes.set(microscope.id, microscope);
+                event.sender.send("microscope-discovered", microscope);
+            }
+        });
+
+    } catch (error) {
+        console.error("WiFi scanning error:", error);
+    }
+}
+
+async function scanLocalNetwork(event, discoveredMicroscopes) {
+    try {
+        // Get local network interfaces
+        const interfaces = os.networkInterfaces();
+        const networks = [];
+
+        // Extract network ranges from interfaces
+        Object.values(interfaces).forEach(interfaceList => {
+            interfaceList.forEach(iface => {
+                if (!iface.internal && iface.family === 'IPv4') {
+                    const ip = iface.address;
+                    const netmask = iface.netmask;
+                    
+                    // Calculate network range (simplified for common cases)
+                    if (netmask === '255.255.255.0') {
+                        const baseIP = ip.split('.').slice(0, 3).join('.');
+                        networks.push({ baseIP, start: 1, end: 254 });
+                    }
+                }
+            });
+        });
+
+        // Scan each network range
+        for (const network of networks) {
+            await scanNetworkRange(event, discoveredMicroscopes, network);
+        }
+
+    } catch (error) {
+        console.error("Local network scanning error:", error);
+    }
+}
+
+async function scanNetworkRange(event, discoveredMicroscopes, network) {
+    const { baseIP, start, end } = network;
+    const chunkSize = 10; // Scan in chunks to avoid overwhelming the network
+    
+    for (let i = start; i <= end; i += chunkSize) {
+        const promises = [];
+        const chunkEnd = Math.min(i + chunkSize - 1, end);
+        
+        for (let j = i; j <= chunkEnd; j++) {
+            const ip = `${baseIP}.${j}`;
+            promises.push(checkMicroscopeAtIP(ip, 8001));
+        }
+        
+        try {
+            const results = await Promise.allSettled(promises);
+            results.forEach((result, index) => {
+                if (result.status === 'fulfilled' && result.value) {
+                    const microscope = result.value;
+                    if (!discoveredMicroscopes.has(microscope.id)) {
+                        discoveredMicroscopes.set(microscope.id, microscope);
+                        event.sender.send("microscope-discovered", microscope);
+                    }
+                }
+            });
+        } catch (error) {
+            console.error(`Error scanning range ${baseIP}.${i}-${chunkEnd}:`, error);
+        }
+        
+        // Small delay between chunks
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+}
+
+async function checkMicroscopeAtIP(ip, port) {
+    return new Promise((resolve) => {
+        const timeout = 2000; // 2 second timeout
+        const url = `https://${ip}:${port}/openapi.json`;
+        
+        const options = {
+            method: 'GET',
+            headers: { 'User-Agent': 'ImSwitchInstaller/1.0' },
+            timeout: timeout,
+            // Allow self-signed certificates
+            rejectUnauthorized: false,
+            agent: new https.Agent({
+                rejectUnauthorized: false
+            })
+        };
+
+        const req = https.request(url, options, (res) => {
+            let data = '';
+            
+            res.on('data', (chunk) => {
+                data += chunk;
+            });
+            
+            res.on('end', () => {
+                try {
+                    const openapi = JSON.parse(data);
+                    if (openapi && (openapi.info || openapi.openapi)) {
+                        // This looks like a valid OpenAPI spec
+                        const microscope = {
+                            id: `network_${ip}_${port}`,
+                            name: `Microscope at ${ip}`,
+                            host: ip,
+                            port: port,
+                            status: 'online',
+                            discoveryType: 'Network Scan',
+                            version: openapi.info?.version || 'Unknown',
+                            lastSeen: Date.now()
+                        };
+                        resolve(microscope);
+                    } else {
+                        resolve(null);
+                    }
+                } catch (parseError) {
+                    resolve(null);
+                }
+            });
+        });
+
+        req.on('error', () => {
+            resolve(null);
+        });
+
+        req.on('timeout', () => {
+            req.destroy();
+            resolve(null);
+        });
+
+        req.setTimeout(timeout);
+        req.end();
+    });
+}
+
+async function verifyMicroscopes(event, discoveredMicroscopes) {
+    const microscopes = Array.from(discoveredMicroscopes.values());
+    
+    for (const microscope of microscopes) {
+        if (microscope.status === 'discovered') {
+            // Test connection to verify it's actually a microscope
+            const status = await testMicroscopeConnection(microscope);
+            microscope.status = status;
+            event.sender.send("microscope-discovered", microscope);
+        }
+    }
+}
+
+async function testMicroscopeConnection(microscope) {
+    return new Promise((resolve) => {
+        const timeout = 5000; // 5 second timeout
+        const url = `https://${microscope.host}:${microscope.port}/openapi.json`;
+        
+        const options = {
+            method: 'GET',
+            headers: { 'User-Agent': 'ImSwitchInstaller/1.0' },
+            timeout: timeout,
+            rejectUnauthorized: false,
+            agent: new https.Agent({
+                rejectUnauthorized: false
+            })
+        };
+
+        const req = https.request(url, options, (res) => {
+            if (res.statusCode === 200) {
+                resolve('online');
+            } else {
+                resolve('offline');
+            }
+        });
+
+        req.on('error', () => {
+            resolve('offline');
+        });
+
+        req.on('timeout', () => {
+            req.destroy();
+            resolve('offline');
+        });
+
+        req.setTimeout(timeout);
+        req.end();
+    });
+}
+
 // Open ImSwitch web interface in current window
 ipcMain.on("openWebInterface", function () {
     // TODO: We want the webfrontend to be opened inside the same window, not a new one
@@ -1018,6 +1301,38 @@ ipcMain.on("openWebInterface", function () {
     console.error("Failed to load web interface:", error);
     dialog.showErrorBox("Web Interface Error", "Could not load ImSwitch web interface. Make sure ImSwitch is running.");
   });
+});
+
+// Microscope Discovery functionality
+ipcMain.on("start-microscope-discovery", async function (event) {
+    console.log("Starting microscope discovery...");
+    await discoverMicroscopes(event);
+});
+
+ipcMain.on("test-microscope-connection", async function (event, microscope) {
+    console.log(`Testing connection to microscope: ${microscope.host}:${microscope.port}`);
+    const status = await testMicroscopeConnection(microscope);
+    event.sender.send("microscope-status-update", { id: microscope.id, status: status });
+});
+
+ipcMain.on("load-microscope-interface", function (event, url) {
+    console.log(`Loading microscope interface: ${url}`);
+    if (win) {
+        win.loadURL(url).catch((error) => {
+            console.error("Failed to load microscope interface:", error);
+            dialog.showErrorBox("Connection Error", "Could not connect to microscope. Please check the connection and try again.");
+        });
+    }
+});
+
+ipcMain.on("open-remote-control", function (event, microscope) {
+    console.log(`Opening remote control for microscope: ${microscope.name}`);
+    // For now, open the API docs in a new window
+    const controlUrl = `https://${microscope.host}:${microscope.port}/docs`;
+    shell.openExternal(controlUrl).catch((error) => {
+        console.error("Failed to open remote control:", error);
+        dialog.showErrorBox("Remote Control Error", "Could not open remote control interface.");
+    });
 });
 
 // Uninstall ImSwitch completely

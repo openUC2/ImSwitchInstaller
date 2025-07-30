@@ -19,6 +19,7 @@ const exec = promisify(require("child_process").exec);
 const { spawn } = require("child_process");
 const stream = require("stream");
 const https = require("https");
+const http = require("http");
 const semver = require("semver");
 const serverFetch = require("node-fetch");
 const os = require("os");
@@ -1092,6 +1093,7 @@ async function scanWiFiNetworks(event, discoveredMicroscopes) {
                     name: `Microscope ${ssid}`,
                     host: '192.168.4.1', // Default IP for WiFi hotspot
                     port: 8001,
+                    protocol: 'https', // Default to HTTPS
                     status: 'discovered',
                     discoveryType: 'WiFi Hotspot',
                     ssid: ssid,
@@ -1114,6 +1116,9 @@ async function scanLocalNetwork(event, discoveredMicroscopes) {
         const interfaces = os.networkInterfaces();
         const networks = [];
 
+        // Always include localhost
+        networks.push({ baseIP: '127.0.0', start: 1, end: 1 });
+
         // Extract network ranges from interfaces
         Object.values(interfaces).forEach(interfaceList => {
             interfaceList.forEach(iface => {
@@ -1125,6 +1130,12 @@ async function scanLocalNetwork(event, discoveredMicroscopes) {
                     if (netmask === '255.255.255.0') {
                         const baseIP = ip.split('.').slice(0, 3).join('.');
                         networks.push({ baseIP, start: 1, end: 254 });
+                    }
+                    // Handle other common netmasks
+                    else if (netmask === '255.255.0.0') {
+                        const baseIP = ip.split('.').slice(0, 2).join('.');
+                        // Scan a smaller range for performance
+                        networks.push({ baseIP: `${baseIP}.1`, start: 1, end: 254 });
                     }
                 }
             });
@@ -1148,10 +1159,19 @@ async function scanNetworkRange(event, discoveredMicroscopes, network) {
         const promises = [];
         const chunkEnd = Math.min(i + chunkSize - 1, end);
         
+        // Send detailed progress for current chunk
+        const currentIPs = [];
         for (let j = i; j <= chunkEnd; j++) {
             const ip = `${baseIP}.${j}`;
+            currentIPs.push(ip);
             promises.push(checkMicroscopeAtIP(ip, 8001));
         }
+        
+        // Send progress update with current IPs being scanned
+        event.sender.send("discovery-progress-detail", { 
+            currentIPs: currentIPs,
+            range: `${baseIP}.${i}-${chunkEnd}`
+        });
         
         try {
             const results = await Promise.allSettled(promises);
@@ -1174,22 +1194,33 @@ async function scanNetworkRange(event, discoveredMicroscopes, network) {
 }
 
 async function checkMicroscopeAtIP(ip, port) {
+    // Try HTTPS first, then HTTP
+    let microscope = await checkMicroscopeAtIPWithProtocol(ip, port, 'https');
+    if (!microscope) {
+        microscope = await checkMicroscopeAtIPWithProtocol(ip, port, 'http');
+    }
+    return microscope;
+}
+
+async function checkMicroscopeAtIPWithProtocol(ip, port, protocol) {
     return new Promise((resolve) => {
         const timeout = 2000; // 2 second timeout
-        const url = `https://${ip}:${port}/openapi.json`;
+        const url = `${protocol}://${ip}:${port}/openapi.json`;
         
         const options = {
             method: 'GET',
             headers: { 'User-Agent': 'ImSwitchInstaller/1.0' },
             timeout: timeout,
-            // Allow self-signed certificates
+            // Allow self-signed certificates for HTTPS
             rejectUnauthorized: false,
-            agent: new https.Agent({
+            agent: protocol === 'https' ? new https.Agent({
                 rejectUnauthorized: false
-            })
+            }) : undefined
         };
 
-        const req = https.request(url, options, (res) => {
+        const requestModule = protocol === 'https' ? https : require('http');
+        
+        const req = requestModule.request(url, options, (res) => {
             let data = '';
             
             res.on('data', (chunk) => {
@@ -1202,10 +1233,11 @@ async function checkMicroscopeAtIP(ip, port) {
                     if (openapi && (openapi.info || openapi.openapi)) {
                         // This looks like a valid OpenAPI spec
                         const microscope = {
-                            id: `network_${ip}_${port}`,
+                            id: `network_${ip}_${port}_${protocol}`,
                             name: `Microscope at ${ip}`,
                             host: ip,
                             port: port,
+                            protocol: protocol,
                             status: 'online',
                             discoveryType: 'Network Scan',
                             version: openapi.info?.version || 'Unknown',
@@ -1251,19 +1283,22 @@ async function verifyMicroscopes(event, discoveredMicroscopes) {
 async function testMicroscopeConnection(microscope) {
     return new Promise((resolve) => {
         const timeout = 5000; // 5 second timeout
-        const url = `https://${microscope.host}:${microscope.port}/openapi.json`;
+        const protocol = microscope.protocol || 'https';
+        const url = `${protocol}://${microscope.host}:${microscope.port}/openapi.json`;
         
         const options = {
             method: 'GET',
             headers: { 'User-Agent': 'ImSwitchInstaller/1.0' },
             timeout: timeout,
             rejectUnauthorized: false,
-            agent: new https.Agent({
+            agent: protocol === 'https' ? new https.Agent({
                 rejectUnauthorized: false
-            })
+            }) : undefined
         };
 
-        const req = https.request(url, options, (res) => {
+        const requestModule = protocol === 'https' ? https : require('http');
+
+        const req = requestModule.request(url, options, (res) => {
             if (res.statusCode === 200) {
                 resolve('online');
             } else {
@@ -1317,18 +1352,35 @@ ipcMain.on("test-microscope-connection", async function (event, microscope) {
 
 ipcMain.on("load-microscope-interface", function (event, url) {
     console.log(`Loading microscope interface: ${url}`);
-    if (win) {
-        win.loadURL(url).catch((error) => {
-            console.error("Failed to load microscope interface:", error);
-            dialog.showErrorBox("Connection Error", "Could not connect to microscope. Please check the connection and try again.");
-        });
-    }
+    
+    // Create a new window for the microscope interface
+    const microscopeWin = new BrowserWindow({
+        width: 1200,
+        height: 800,
+        webPreferences: {
+            nodeIntegration: false,
+            contextIsolation: true,
+            webSecurity: false // Allow self-signed certificates
+        },
+        show: false
+    });
+
+    microscopeWin.once('ready-to-show', () => {
+        microscopeWin.show();
+    });
+
+    microscopeWin.loadURL(url).catch((error) => {
+        console.error("Failed to load microscope interface:", error);
+        dialog.showErrorBox("Connection Error", "Could not connect to microscope. Please check the connection and try again.");
+        microscopeWin.close();
+    });
 });
 
 ipcMain.on("open-remote-control", function (event, microscope) {
     console.log(`Opening remote control for microscope: ${microscope.name}`);
     // For now, open the API docs in a new window
-    const controlUrl = `https://${microscope.host}:${microscope.port}/docs`;
+    const protocol = microscope.protocol || 'https';
+    const controlUrl = `${protocol}://${microscope.host}:${microscope.port}/docs`;
     shell.openExternal(controlUrl).catch((error) => {
         console.error("Failed to open remote control:", error);
         dialog.showErrorBox("Remote Control Error", "Could not open remote control interface.");

@@ -37,6 +37,10 @@ class MicroscopeDiscovery {
             this.onDiscoveryComplete();
         });
 
+        ipcRenderer.on('discovery-progress-detail', (event, detail) => {
+            this.updateDetailedProgress(detail);
+        });
+
         ipcRenderer.on('microscope-status-update', (event, {id, status}) => {
             this.updateMicroscopeStatus(id, status);
         });
@@ -52,6 +56,12 @@ class MicroscopeDiscovery {
         document.getElementById('discoveryProgress').style.display = 'block';
         document.getElementById('progressBar').style.width = '0%';
         document.getElementById('progressText').textContent = 'Starting discovery...';
+        
+        // Clear detailed progress
+        const detailsList = document.getElementById('scanningDetailsList');
+        if (detailsList) {
+            detailsList.innerHTML = '<small class="text-muted">Starting scan...</small>';
+        }
         
         // Clear previous results
         this.discoveredMicroscopes.clear();
@@ -130,6 +140,12 @@ class MicroscopeDiscovery {
         const cardClass = microscope.status === 'online' ? 'connected' : 
                          microscope.status === 'offline' ? 'offline' : '';
 
+        // Determine if connect button should be enabled
+        const canConnect = microscope.status === 'online' || 
+                          (microscope.lastSeen && Date.now() - microscope.lastSeen < 300000); // 5 minutes
+
+        const protocol = microscope.protocol || 'https';
+
         return `
             <div class="microscope-card ${cardClass}" data-microscope-id="${microscope.id}">
                 <div class="d-flex justify-content-between align-items-start">
@@ -137,7 +153,7 @@ class MicroscopeDiscovery {
                         <h5>${microscope.name}</h5>
                         <div class="microscope-info">
                             <small class="text-muted">
-                                <strong>Address:</strong> ${microscope.host}:${microscope.port}<br>
+                                <strong>Address:</strong> ${protocol}://${microscope.host}:${microscope.port}<br>
                                 <strong>Type:</strong> ${microscope.discoveryType || 'Manual'}<br>
                                 ${microscope.version ? `<strong>Version:</strong> ${microscope.version}<br>` : ''}
                                 <strong>Last seen:</strong> ${new Date(microscope.lastSeen).toLocaleString()}
@@ -150,12 +166,12 @@ class MicroscopeDiscovery {
                 <div class="microscope-actions">
                     <button class="btn btn-sm btn-primary connect-btn" 
                             data-microscope-id="${microscope.id}"
-                            ${microscope.status !== 'online' ? 'disabled' : ''}>
+                            ${!canConnect ? 'disabled' : ''}>
                         Connect
                     </button>
                     <button class="btn btn-sm btn-info control-btn" 
                             data-microscope-id="${microscope.id}"
-                            ${microscope.status !== 'online' ? 'disabled' : ''}>
+                            ${!canConnect ? 'disabled' : ''}>
                         Remote Control
                     </button>
                     <button class="btn btn-sm btn-secondary test-btn" 
@@ -209,8 +225,9 @@ class MicroscopeDiscovery {
         const microscope = this.discoveredMicroscopes.get(microscopeId);
         if (!microscope) return;
 
-        // Load the microscope's web interface in the main window
-        const url = `https://${microscope.host}:${microscope.port}/imswitch/index.html`;
+        const protocol = microscope.protocol || 'https';
+        // Load the microscope's web interface in a new window
+        const url = `${protocol}://${microscope.host}:${microscope.port}/imswitch/index.html`;
         ipcRenderer.send('load-microscope-interface', url);
     }
 
@@ -252,21 +269,42 @@ class MicroscopeDiscovery {
         }
     }
 
+    updateDetailedProgress(detail) {
+        const detailsList = document.getElementById('scanningDetailsList');
+        if (!detailsList) return;
+        
+        const timestamp = new Date().toLocaleTimeString();
+        const newDetail = document.createElement('div');
+        newDetail.innerHTML = `<small class="text-muted">[${timestamp}] Scanning: ${detail.currentIPs.join(', ')}</small>`;
+        
+        detailsList.appendChild(newDetail);
+        
+        // Keep only last 20 entries to avoid overflow
+        while (detailsList.children.length > 20) {
+            detailsList.removeChild(detailsList.firstChild);
+        }
+        
+        // Auto-scroll to bottom
+        detailsList.scrollTop = detailsList.scrollHeight;
+    }
+
     addManualMicroscope() {
         const name = document.getElementById('microscopeName').value.trim();
         const ip = document.getElementById('microscopeIP').value.trim();
         const port = document.getElementById('microscopePort').value.trim();
+        const protocol = document.getElementById('microscopeProtocol').value;
 
-        if (!name || !ip || !port) {
+        if (!name || !ip || !port || !protocol) {
             alert('Please fill in all fields');
             return;
         }
 
         const microscope = {
-            id: `manual_${ip}_${port}`,
+            id: `manual_${ip}_${port}_${protocol}`,
             name: name,
             host: ip,
             port: parseInt(port),
+            protocol: protocol,
             status: 'unknown',
             discoveryType: 'Manual',
             lastSeen: Date.now()

@@ -115,6 +115,21 @@
               </div>
             </div>
             <small id="progressText" class="text-muted">Scanning for microscopes...</small>
+            
+            <!-- Detailed scanning progress (expandable) -->
+            <div class="mt-2">
+              <button class="btn btn-sm btn-link p-0" type="button" data-bs-toggle="collapse" 
+                      data-bs-target="#scanningDetails" aria-expanded="false" aria-controls="scanningDetails">
+                <small>Show scanning details ▼</small>
+              </button>
+              <div class="collapse" id="scanningDetails">
+                <div class="card card-body mt-2" style="font-size: 0.85em; max-height: 200px; overflow-y: auto;">
+                  <div id="scanningDetailsList">
+                    <small class="text-muted">Detailed scanning information will appear here...</small>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
           
           <div id="microscopesList">
@@ -154,9 +169,22 @@
                 <label for="microscopeIP" class="form-label">IP Address</label>
                 <input type="text" class="form-control" id="microscopeIP" placeholder="e.g., 192.168.1.100" required>
               </div>
-              <div class="mb-3">
-                <label for="microscopePort" class="form-label">Port</label>
-                <input type="number" class="form-control" id="microscopePort" value="8001" required>
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label for="microscopeProtocol" class="form-label">Protocol</label>
+                    <select class="form-control" id="microscopeProtocol" required>
+                      <option value="https">HTTPS (Recommended)</option>
+                      <option value="http">HTTP</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label for="microscopePort" class="form-label">Port</label>
+                    <input type="number" class="form-control" id="microscopePort" value="8001" required>
+                  </div>
+                </div>
               </div>
             </form>
           </div>

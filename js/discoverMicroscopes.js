@@ -228,6 +228,8 @@ class MicroscopeDiscovery {
         const protocol = microscope.protocol || 'https';
         // Load the microscope's web interface in a new window
         const url = `${protocol}://${microscope.host}:${microscope.port}/imswitch/index.html`;
+        console.log(`Connecting to microscope at ${url}`);
+        // Send IPC message to main process to open the microscope interface
         ipcRenderer.send('load-microscope-interface', url);
     }
 

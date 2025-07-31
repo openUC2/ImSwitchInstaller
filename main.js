@@ -1369,6 +1369,12 @@ ipcMain.on("load-microscope-interface", function (event, url) {
         microscopeWin.show();
     });
 
+    shell.openExternal(url).catch((error) => {
+        console.error("Failed to open microscopy control:", error);
+        dialog.showErrorBox("Microcopy Control Error", "Could not open remote control interface on URL: " + url);
+    });
+
+
     microscopeWin.loadURL(url).catch((error) => {
         console.error("Failed to load microscope interface:", error);
         dialog.showErrorBox("Connection Error", "Could not connect to microscope. Please check the connection and try again.");

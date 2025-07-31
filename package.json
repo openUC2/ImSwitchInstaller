@@ -9,7 +9,7 @@
   "private": false,
   "scripts": {
     "compile": "tsc",
-    "start": "electron .",
+    "start": "electron . --no-sandbox",
     "pack": "electron-builder --dir",
     "dist": "electron-builder"
   },

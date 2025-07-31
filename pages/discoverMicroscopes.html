@@ -2,39 +2,38 @@
 <html>
   <head>
     <meta charset="UTF-8" />
+    <link rel="stylesheet" href="../css/material-design.css" />
     <link rel="stylesheet" href="../css/style.css" />
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-      integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC"
-      crossorigin="anonymous"
-    />
+    <!-- Material Design Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Roboto Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net/; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net/; font-src 'self' https://fonts.gstatic.com;"
+      content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net/; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net/ 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com;"
     />
     <meta
       http-equiv="X-Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net/; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net/; font-src 'self' https://fonts.gstatic.com;"
+      content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net/; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net/ 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com;"
     />
     <title>Discover Microscopes - ImSwitch</title>
     <style>
       .microscope-card {
-        border: 1px solid #ddd;
+        background-color: var(--mdc-theme-surface);
+        border: 1px solid rgba(255, 255, 255, 0.12);
         border-radius: 8px;
         padding: 20px;
         margin: 10px 0;
-        background: white;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         transition: all 0.3s ease;
+        box-shadow: 0px 2px 1px -1px rgba(0,0,0,0.2), 0px 1px 1px 0px rgba(0,0,0,0.14), 0px 1px 3px 0px rgba(0,0,0,0.12);
       }
       .microscope-card:hover {
-        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        box-shadow: 0px 2px 4px -1px rgba(0,0,0,0.2), 0px 4px 5px 0px rgba(0,0,0,0.14), 0px 1px 10px 0px rgba(0,0,0,0.12);
         transform: translateY(-2px);
       }
       .microscope-card.connected {
-        border-color: #28a745;
+        border-color: #4caf50;
         border-width: 2px;
       }
       .microscope-card.offline {
@@ -50,16 +49,16 @@
         text-transform: uppercase;
       }
       .status-online {
-        background-color: #d4edda;
-        color: #155724;
+        background-color: #4caf50;
+        color: #ffffff;
       }
       .status-offline {
-        background-color: #f8d7da;
-        color: #721c24;
+        background-color: #f44336;
+        color: #ffffff;
       }
       .status-discovering {
-        background-color: #fff3cd;
-        color: #856404;
+        background-color: #ff9800;
+        color: #ffffff;
       }
       .discovery-progress {
         margin: 20px 0;
@@ -69,13 +68,14 @@
       }
       .microscope-info {
         margin: 10px 0;
+        color: var(--mdc-theme-on-surface);
       }
       .loading-spinner {
         display: inline-block;
         width: 20px;
         height: 20px;
-        border: 3px solid #f3f3f3;
-        border-top: 3px solid #007bff;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-top: 3px solid var(--mdc-theme-primary);
         border-radius: 50%;
         animation: spin 1s linear infinite;
       }
@@ -83,124 +83,333 @@
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
       }
+      .progress-bar {
+        background-color: var(--mdc-theme-surface);
+        border-radius: 4px;
+        overflow: hidden;
+        height: 8px;
+        margin: 16px 0;
+      }
+      .progress-bar-fill {
+        background-color: var(--mdc-theme-primary);
+        height: 100%;
+        transition: width 0.3s ease;
+        border-radius: 4px;
+      }
+      .microscopes-container {
+        max-height: 60vh;
+        overflow-y: auto;
+        margin: 16px 0;
+        padding-right: 8px;
+      }
+      .microscopes-container::-webkit-scrollbar {
+        width: 8px;
+      }
+      .microscopes-container::-webkit-scrollbar-track {
+        background: var(--mdc-theme-surface);
+        border-radius: 4px;
+      }
+      .microscopes-container::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+      }
+      .microscopes-container::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.3);
+      }
+      .details-section {
+        background-color: var(--mdc-theme-surface);
+        border-radius: 4px;
+        padding: 12px;
+        margin-top: 8px;
+        font-size: 0.85em;
+        max-height: 200px;
+        overflow-y: auto;
+      }
     </style>
   </head>
   <body>
-    <div id="parent" class="container h-100">
-      <div class="row align-items-center m-4">
-        <div class="col">
+    <div class="app-container">
+      <!-- Material Design App Bar -->
+      <header class="mdc-top-app-bar elevation-4">
+        <div class="mdc-top-app-bar__row">
+          <section class="mdc-top-app-bar__section mdc-top-app-bar__section--align-start">
+            <button class="mdc-icon-button mdc-top-app-bar__navigation-icon" id="menuToggle">
+              <span class="material-icons">menu</span>
+            </button>
+            <span class="mdc-top-app-bar__title">Discover Microscopes</span>
+          </section>
+          <section class="mdc-top-app-bar__section mdc-top-app-bar__section--align-end">
+            <button class="mdc-icon-button theme-toggle" id="themeToggle" title="Toggle Light/Dark Theme">
+              <span class="material-icons">brightness_6</span>
+            </button>
+            <img src="../assets/icons/icon.png" alt="ImSwitch Logo" class="app-logo" />
+          </section>
+        </div>
+      </header>
+
+      <!-- Sidebar/Navigation Drawer -->
+      <nav class="sidebar elevation-2" id="sidebar">
+        <ul class="sidebar-nav">
+          <li>
+            <a href="./menu.html" class="sidebar-nav-item">
+              <span class="material-icons sidebar-nav-icon">home</span>
+              <span class="sidebar-nav-text">Home</span>
+            </a>
+          </li>
+          <li>
+            <a href="./installImSwitch.html" class="sidebar-nav-item">
+              <span class="material-icons sidebar-nav-icon">download</span>
+              <span class="sidebar-nav-text">Install ImSwitch</span>
+            </a>
+          </li>
+          <li>
+            <a href="./startImSwitch.html" class="sidebar-nav-item">
+              <span class="material-icons sidebar-nav-icon">play_arrow</span>
+              <span class="sidebar-nav-text">Start ImSwitch</span>
+            </a>
+          </li>
+          <li>
+            <a href="#" class="sidebar-nav-item" id="openWebInterface">
+              <span class="material-icons sidebar-nav-icon">web</span>
+              <span class="sidebar-nav-text">Open Web Interface</span>
+            </a>
+          </li>
+          <li>
+            <a href="./discoverMicroscopes.html" class="sidebar-nav-item active">
+              <span class="material-icons sidebar-nav-icon">search</span>
+              <span class="sidebar-nav-text">Discover Microscopes</span>
+            </a>
+          </li>
+          <li>
+            <a href="./updateImSwitch.html" class="sidebar-nav-item">
+              <span class="material-icons sidebar-nav-icon">update</span>
+              <span class="sidebar-nav-text">Update ImSwitch</span>
+            </a>
+          </li>
+          <li>
+            <a href="./installESPDrivers.html" class="sidebar-nav-item">
+              <span class="material-icons sidebar-nav-icon">usb</span>
+              <span class="sidebar-nav-text">Install Drivers</span>
+            </a>
+          </li>
+          <li>
+            <a href="./updateESP/index.html" class="sidebar-nav-item">
+              <span class="material-icons sidebar-nav-icon">memory</span>
+              <span class="sidebar-nav-text">Update UC2-ESP32</span>
+            </a>
+          </li>
+          <li>
+            <a href="./setupConfig.html" class="sidebar-nav-item">
+              <span class="material-icons sidebar-nav-icon">settings</span>
+              <span class="sidebar-nav-text">Setup Configuration</span>
+            </a>
+          </li>
+          <li>
+            <a href="./fastAPI.html" class="sidebar-nav-item">
+              <span class="material-icons sidebar-nav-icon">api</span>
+              <span class="sidebar-nav-text">FastAPI</span>
+            </a>
+          </li>
+          <li>
+            <a href="./uninstallImSwitch.html" class="sidebar-nav-item">
+              <span class="material-icons sidebar-nav-icon">delete</span>
+              <span class="sidebar-nav-text">Uninstall ImSwitch</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+
+      <!-- Main Content Area -->
+      <main class="main-content" id="mainContent">
+        <div class="mdc-card elevation-1" style="padding: 24px; margin-bottom: 24px;">
           <h1>Discover Microscopes</h1>
           <p>
             Find and connect to nearby UC2 microscopes running ImSwitch server.
-            <br />
             This will scan for WiFi networks with "openUC2-" prefix and local network devices.
           </p>
         </div>
-      </div>
-      
-      <div class="row">
-        <div class="col">
-          <div class="d-flex justify-content-between align-items-center mb-3">
+        
+        <div class="mdc-card elevation-1" style="padding: 24px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
             <h3>Available Microscopes</h3>
-            <button type="button" class="btn btn-primary" id="refreshButton">
+            <button type="button" class="mdc-button mdc-button--raised mdc-button--primary" id="refreshButton">
               <span id="refreshSpinner" class="loading-spinner" style="display: none;"></span>
-              <span id="refreshText">Refresh</span>
+              <span id="refreshText" class="mdc-button__label">Refresh</span>
             </button>
           </div>
           
           <div id="discoveryProgress" class="discovery-progress" style="display: none;">
-            <div class="progress">
-              <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" 
-                   role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%">
-              </div>
+            <div class="progress-bar">
+              <div id="progressBar" class="progress-bar-fill" style="width: 0%"></div>
             </div>
-            <small id="progressText" class="text-muted">Scanning for microscopes...</small>
+            <small id="progressText" style="color: var(--mdc-theme-on-surface); opacity: 0.7;">Scanning for microscopes...</small>
             
             <!-- Detailed scanning progress (expandable) -->
-            <div class="mt-2">
-              <button class="btn btn-sm btn-link p-0" type="button" data-bs-toggle="collapse" 
-                      data-bs-target="#scanningDetails" aria-expanded="false" aria-controls="scanningDetails">
-                <small>Show scanning details ▼</small>
+            <div style="margin-top: 12px;">
+              <button class="mdc-button mdc-button--outlined" style="font-size: 0.8rem; padding: 8px 16px;" type="button" id="toggleDetails">
+                <span class="mdc-button__label">Show scanning details ▼</span>
               </button>
-              <div class="collapse" id="scanningDetails">
-                <div class="card card-body mt-2" style="font-size: 0.85em; max-height: 200px; overflow-y: auto;">
+              <div id="scanningDetails" style="display: none;">
+                <div class="details-section">
                   <div id="scanningDetailsList">
-                    <small class="text-muted">Detailed scanning information will appear here...</small>
+                    <small style="color: var(--mdc-theme-on-surface); opacity: 0.7;">Detailed scanning information will appear here...</small>
                   </div>
                 </div>
               </div>
             </div>
           </div>
           
-          <div id="microscopesList">
+          <div class="microscopes-container" id="microscopesList">
             <!-- Discovered microscopes will be displayed here -->
-            <div class="text-center p-4">
-              <p class="text-muted">No microscopes discovered yet. Click "Refresh" to start scanning.</p>
+            <div style="text-align: center; padding: 32px;">
+              <span class="material-icons" style="font-size: 48px; opacity: 0.5; margin-bottom: 16px;">search</span>
+              <p style="color: var(--mdc-theme-on-surface); opacity: 0.7;">No microscopes discovered yet. Click "Refresh" to start scanning.</p>
             </div>
           </div>
-        </div>
-      </div>
-      
-      <div class="row mt-4">
-        <div class="col">
-          <div class="d-flex justify-content-between">
-            <a role="button" class="btn btn-secondary" href="./menu.html">Back to Menu</a>
-            <button type="button" class="btn btn-info" id="addManualButton">Add Manually</button>
+          
+          <div style="display: flex; justify-content: space-between; margin-top: 24px;">
+            <a role="button" class="mdc-button mdc-button--outlined" href="./menu.html">
+              <span class="mdc-button__label">Back to Menu</span>
+            </a>
+            <button type="button" class="mdc-button mdc-button--raised mdc-button--info" id="addManualButton">
+              <span class="mdc-button__label">Add Manually</span>
+            </button>
           </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Manual Add Modal - Material Design style -->
+    <div class="modal-overlay" id="manualAddModal" style="display: none;">
+      <div class="modal-content mdc-card elevation-4" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 500px; padding: 24px; z-index: 1000;">
+        <div style="margin-bottom: 20px;">
+          <h3 style="margin: 0 0 16px 0;">Add Microscope Manually</h3>
+          <button class="mdc-icon-button" id="closeModal" style="position: absolute; top: 16px; right: 16px;">
+            <span class="material-icons">close</span>
+          </button>
+        </div>
+        <form id="manualAddForm">
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 500;">Microscope Name</label>
+            <input type="text" id="microscopeName" placeholder="e.g., UC2 Microscope 1" required
+                   style="width: 100%; padding: 12px; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 4px; background: var(--mdc-theme-surface); color: var(--mdc-theme-on-surface); font-family: 'Roboto', sans-serif;">
+          </div>
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 500;">IP Address</label>
+            <input type="text" id="microscopeIP" placeholder="e.g., 192.168.1.100" required
+                   style="width: 100%; padding: 12px; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 4px; background: var(--mdc-theme-surface); color: var(--mdc-theme-on-surface); font-family: 'Roboto', sans-serif;">
+          </div>
+          <div style="display: flex; gap: 16px; margin-bottom: 16px;">
+            <div style="flex: 1;">
+              <label style="display: block; margin-bottom: 8px; font-weight: 500;">Protocol</label>
+              <select id="microscopeProtocol" required
+                      style="width: 100%; padding: 12px; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 4px; background: var(--mdc-theme-surface); color: var(--mdc-theme-on-surface); font-family: 'Roboto', sans-serif;">
+                <option value="https">HTTPS (Recommended)</option>
+                <option value="http">HTTP</option>
+              </select>
+            </div>
+            <div style="flex: 1;">
+              <label style="display: block; margin-bottom: 8px; font-weight: 500;">Port</label>
+              <input type="number" id="microscopePort" value="8001" required
+                     style="width: 100%; padding: 12px; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 4px; background: var(--mdc-theme-surface); color: var(--mdc-theme-on-surface); font-family: 'Roboto', sans-serif;">
+            </div>
+          </div>
+        </form>
+        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 24px;">
+          <button type="button" class="mdc-button mdc-button--outlined" id="cancelButton">
+            <span class="mdc-button__label">Cancel</span>
+          </button>
+          <button type="button" class="mdc-button mdc-button--raised mdc-button--primary" id="addMicroscopeButton">
+            <span class="mdc-button__label">Add Microscope</span>
+          </button>
         </div>
       </div>
     </div>
 
-    <!-- Manual Add Modal -->
-    <div class="modal fade" id="manualAddModal" tabindex="-1" aria-labelledby="manualAddModalLabel" aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="manualAddModalLabel">Add Microscope Manually</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            <form id="manualAddForm">
-              <div class="mb-3">
-                <label for="microscopeName" class="form-label">Microscope Name</label>
-                <input type="text" class="form-control" id="microscopeName" placeholder="e.g., UC2 Microscope 1" required>
-              </div>
-              <div class="mb-3">
-                <label for="microscopeIP" class="form-label">IP Address</label>
-                <input type="text" class="form-control" id="microscopeIP" placeholder="e.g., 192.168.1.100" required>
-              </div>
-              <div class="row">
-                <div class="col-md-6">
-                  <div class="mb-3">
-                    <label for="microscopeProtocol" class="form-label">Protocol</label>
-                    <select class="form-control" id="microscopeProtocol" required>
-                      <option value="https">HTTPS (Recommended)</option>
-                      <option value="http">HTTP</option>
-                    </select>
-                  </div>
-                </div>
-                <div class="col-md-6">
-                  <div class="mb-3">
-                    <label for="microscopePort" class="form-label">Port</label>
-                    <input type="number" class="form-control" id="microscopePort" value="8001" required>
-                  </div>
-                </div>
-              </div>
-            </form>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="button" class="btn btn-primary" id="addMicroscopeButton">Add Microscope</button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <!-- Modal overlay background -->
+    <style>
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 999;
+      }
+    </style>
 
-    <script
-      src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
-      integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p"
-      crossorigin="anonymous"
-    ></script>
+    <!-- JavaScript for interactions -->
+    <script>
+      // Menu toggle functionality
+      const menuToggle = document.getElementById('menuToggle');
+      const sidebar = document.getElementById('sidebar');
+      const mainContent = document.getElementById('mainContent');
+
+      menuToggle.addEventListener('click', () => {
+        sidebar.classList.toggle('collapsed');
+        mainContent.classList.toggle('sidebar-collapsed');
+      });
+
+      // Theme toggle functionality
+      const themeToggle = document.getElementById('themeToggle');
+      const root = document.documentElement;
+      let isDarkMode = true; // Default to dark mode
+
+      themeToggle.addEventListener('click', () => {
+        isDarkMode = !isDarkMode;
+        
+        if (isDarkMode) {
+          // Dark theme
+          root.style.setProperty('--mdc-theme-background', '#121212');
+          root.style.setProperty('--mdc-theme-surface', '#1e1e1e');
+          root.style.setProperty('--mdc-theme-on-background', '#ffffff');
+          root.style.setProperty('--mdc-theme-on-surface', '#ffffff');
+        } else {
+          // Light theme
+          root.style.setProperty('--mdc-theme-background', '#ffffff');
+          root.style.setProperty('--mdc-theme-surface', '#f5f5f5');
+          root.style.setProperty('--mdc-theme-on-background', '#000000');
+          root.style.setProperty('--mdc-theme-on-surface', '#000000');
+        }
+      });
+
+      // Modal functionality
+      const addManualButton = document.getElementById('addManualButton');
+      const manualAddModal = document.getElementById('manualAddModal');
+      const closeModal = document.getElementById('closeModal');
+      const cancelButton = document.getElementById('cancelButton');
+
+      addManualButton.addEventListener('click', () => {
+        manualAddModal.style.display = 'block';
+      });
+
+      closeModal.addEventListener('click', () => {
+        manualAddModal.style.display = 'none';
+      });
+
+      cancelButton.addEventListener('click', () => {
+        manualAddModal.style.display = 'none';
+      });
+
+      // Details toggle
+      const toggleDetails = document.getElementById('toggleDetails');
+      const scanningDetails = document.getElementById('scanningDetails');
+
+      toggleDetails.addEventListener('click', () => {
+        const isVisible = scanningDetails.style.display !== 'none';
+        scanningDetails.style.display = isVisible ? 'none' : 'block';
+        toggleDetails.querySelector('.mdc-button__label').textContent = 
+          isVisible ? 'Show scanning details ▼' : 'Hide scanning details ▲';
+      });
+
+      // Auto-collapse sidebar on mobile
+      if (window.innerWidth <= 768) {
+        sidebar.classList.add('collapsed');
+        mainContent.classList.add('sidebar-collapsed');
+      }
+    </script>
+    <script type="module" src="../js/openWebInterface.js"></script>
     <script type="module" src="../js/discoverMicroscopes.js"></script>
   </body>
 </html>

@@ -134,3 +134,7 @@ dist
 # Wandb files
 py/wandb/
 wandb/
+
+# Temporary files for development/testing
+simple-server.js
+material-design-preview.html

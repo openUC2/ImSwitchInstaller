@@ -2,66 +2,212 @@
 <html>
   <head>
     <meta charset="UTF-8" />
+    <link rel="stylesheet" href="../css/material-design.css" />
     <link rel="stylesheet" href="../css/style.css" />
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-      integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC"
-      crossorigin="anonymous"
-    />
+    <!-- Material Design Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Roboto Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net/; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net/; font-src 'self' https://fonts.gstatic.com;"
+      content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net/; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net/ 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com;"
     />
     <meta
       http-equiv="X-Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net/; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net/; font-src 'self' https://fonts.gstatic.com;"
+      content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net/; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net/ 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com;"
     />
     <title>ImSwitch</title>
   </head>
   <body>
-    <div id="parent" class="container h-100">
-      <div class="row align-items-center m-4">
-        <div class="col">
-          <h1>Menu</h1>
+    <div class="app-container">
+      <!-- Material Design App Bar -->
+      <header class="mdc-top-app-bar elevation-4">
+        <div class="mdc-top-app-bar__row">
+          <section class="mdc-top-app-bar__section mdc-top-app-bar__section--align-start">
+            <button class="mdc-icon-button mdc-top-app-bar__navigation-icon" id="menuToggle">
+              <span class="material-icons">menu</span>
+            </button>
+            <span class="mdc-top-app-bar__title">ImSwitch - Menu</span>
+          </section>
+          <section class="mdc-top-app-bar__section mdc-top-app-bar__section--align-end">
+            <button class="mdc-icon-button theme-toggle" id="themeToggle" title="Toggle Light/Dark Theme">
+              <span class="material-icons">brightness_6</span>
+            </button>
+            <img src="../assets/icons/icon.png" alt="ImSwitch Logo" class="app-logo" />
+          </section>
+        </div>
+      </header>
+
+      <!-- Sidebar/Navigation Drawer -->
+      <nav class="sidebar elevation-2" id="sidebar">
+        <ul class="sidebar-nav">
+          <li>
+            <a href="./installImSwitch.html" class="sidebar-nav-item">
+              <span class="material-icons sidebar-nav-icon">download</span>
+              <span class="sidebar-nav-text">Install ImSwitch</span>
+            </a>
+          </li>
+          <li>
+            <a href="./startImSwitch.html" class="sidebar-nav-item">
+              <span class="material-icons sidebar-nav-icon">play_arrow</span>
+              <span class="sidebar-nav-text">Start ImSwitch</span>
+            </a>
+          </li>
+          <li>
+            <a href="#" class="sidebar-nav-item" id="openWebInterface">
+              <span class="material-icons sidebar-nav-icon">web</span>
+              <span class="sidebar-nav-text">Open Web Interface</span>
+            </a>
+          </li>
+          <li>
+            <a href="./discoverMicroscopes.html" class="sidebar-nav-item">
+              <span class="material-icons sidebar-nav-icon">search</span>
+              <span class="sidebar-nav-text">Discover Microscopes</span>
+            </a>
+          </li>
+          <li>
+            <a href="./updateImSwitch.html" class="sidebar-nav-item">
+              <span class="material-icons sidebar-nav-icon">update</span>
+              <span class="sidebar-nav-text">Update ImSwitch</span>
+            </a>
+          </li>
+          <li>
+            <a href="./installESPDrivers.html" class="sidebar-nav-item">
+              <span class="material-icons sidebar-nav-icon">usb</span>
+              <span class="sidebar-nav-text">Install Drivers</span>
+            </a>
+          </li>
+          <li>
+            <a href="./updateESP/index.html" class="sidebar-nav-item">
+              <span class="material-icons sidebar-nav-icon">memory</span>
+              <span class="sidebar-nav-text">Update UC2-ESP32</span>
+            </a>
+          </li>
+          <li>
+            <a href="./setupConfig.html" class="sidebar-nav-item">
+              <span class="material-icons sidebar-nav-icon">settings</span>
+              <span class="sidebar-nav-text">Setup Configuration</span>
+            </a>
+          </li>
+          <li>
+            <a href="./fastAPI.html" class="sidebar-nav-item">
+              <span class="material-icons sidebar-nav-icon">api</span>
+              <span class="sidebar-nav-text">FastAPI</span>
+            </a>
+          </li>
+          <li>
+            <a href="./uninstallImSwitch.html" class="sidebar-nav-item">
+              <span class="material-icons sidebar-nav-icon">delete</span>
+              <span class="sidebar-nav-text">Uninstall ImSwitch</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+
+      <!-- Main Content Area -->
+      <main class="main-content" id="mainContent">
+        <div class="mdc-card elevation-1" style="padding: 24px; margin-bottom: 24px;">
+          <h1>Welcome to ImSwitch</h1>
           <p>
-            <br />
-            Here are the tools offered by ImSwitch. Clicking any tool will open its
-            menu and includes links to documentation.
-            <br />
+            Here are the tools offered by ImSwitch. Click any tool in the sidebar to navigate 
+            to its menu, which includes links to documentation and functionality.
+          </p>
+          <p>
+            Use the menu button in the top-left to collapse or expand the sidebar navigation.
           </p>
         </div>
-      </div>
-      <div class="row align-items-center">
-        <div class="col d-grid gap-2">
-          <a role="button" class="btn btn-success" href="./installImSwitch.html"
-            >Install ImSwitch</a>
-          <a role="button" class="btn btn-primary" href="./startImSwitch.html"
-            >Start ImSwitch</a>
-          <button type="button" class="btn btn-success" id="openWebInterface"
-            >Open ImSwitch Web Interface</button>  <!-- TODO: Nothing happens here:=> We want to open http://hostname:8001 in a new window-->
-          <a role="button" class="btn btn-info" href="./discoverMicroscopes.html"
-            >🔍 Discover Microscopes</a>
-          <a role="button" class="btn btn-primary" href="./updateImSwitch.html"
-            >Update ImSwitch</a>
-          <a role="button" class="btn btn-primary" href="./installESPDrivers.html"
-            >Install External Drivers (Camera, UC2-ESP)</a>            
-          <a role="button" class="btn btn-primary" href="./updateESP/index.html"
-            >Update UC2-ESP32</a>            
-          <a role="button" class="btn btn-primary" href="./setupConfig.html"
-            >Setup Configuration</a>
-          <a role="button" class="btn btn-primary" href="./fastAPI.html"
-            >FastAPI</a>
-          <a role="button" class="btn btn-danger" href="./uninstallImSwitch.html"
-            >Uninstall ImSwitch</a>                    
+
+        <div class="menu-grid">
+          <div class="mdc-card elevation-1" style="padding: 16px;">
+            <h3>Installation & Setup</h3>
+            <p>Get started with ImSwitch installation and configuration.</p>
+            <div style="margin-top: 16px;">
+              <a href="./installImSwitch.html" class="mdc-button mdc-button--raised mdc-button--success">
+                <span class="mdc-button__label">Install ImSwitch</span>
+              </a>
+            </div>
+          </div>
+
+          <div class="mdc-card elevation-1" style="padding: 16px;">
+            <h3>Control & Monitor</h3>
+            <p>Start ImSwitch and access the web interface for microscope control.</p>
+            <div style="margin-top: 16px;">
+              <a href="./startImSwitch.html" class="mdc-button mdc-button--raised mdc-button--primary">
+                <span class="mdc-button__label">Start ImSwitch</span>
+              </a>
+            </div>
+          </div>
+
+          <div class="mdc-card elevation-1" style="padding: 16px;">
+            <h3>Discovery</h3>
+            <p>Find and connect to microscopes on your network.</p>
+            <div style="margin-top: 16px;">
+              <a href="./discoverMicroscopes.html" class="mdc-button mdc-button--raised mdc-button--info">
+                <span class="mdc-button__label">Discover Microscopes</span>
+              </a>
+            </div>
+          </div>
+
+          <div class="mdc-card elevation-1" style="padding: 16px;">
+            <h3>Maintenance</h3>
+            <p>Update, configure, and manage your ImSwitch installation.</p>
+            <div style="margin-top: 16px;">
+              <a href="./updateImSwitch.html" class="mdc-button mdc-button--outlined">
+                <span class="mdc-button__label">Update & Configure</span>
+              </a>
+            </div>
+          </div>
         </div>
+      </main>
     </div>
-    <script
-      src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
-      integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p"
-      crossorigin="anonymous"
-    ></script>
+
+    <!-- JavaScript for interactions -->
+    <script>
+      // Menu toggle functionality
+      const menuToggle = document.getElementById('menuToggle');
+      const sidebar = document.getElementById('sidebar');
+      const mainContent = document.getElementById('mainContent');
+
+      menuToggle.addEventListener('click', () => {
+        sidebar.classList.toggle('collapsed');
+        mainContent.classList.toggle('sidebar-collapsed');
+      });
+
+      // Theme toggle functionality
+      const themeToggle = document.getElementById('themeToggle');
+      const root = document.documentElement;
+      let isDarkMode = true; // Default to dark mode
+
+      themeToggle.addEventListener('click', () => {
+        isDarkMode = !isDarkMode;
+        
+        if (isDarkMode) {
+          // Dark theme
+          root.style.setProperty('--mdc-theme-background', '#121212');
+          root.style.setProperty('--mdc-theme-surface', '#1e1e1e');
+          root.style.setProperty('--mdc-theme-on-background', '#ffffff');
+          root.style.setProperty('--mdc-theme-on-surface', '#ffffff');
+        } else {
+          // Light theme
+          root.style.setProperty('--mdc-theme-background', '#ffffff');
+          root.style.setProperty('--mdc-theme-surface', '#f5f5f5');
+          root.style.setProperty('--mdc-theme-on-background', '#000000');
+          root.style.setProperty('--mdc-theme-on-surface', '#000000');
+        }
+      });
+
+      // Active navigation highlighting
+      const currentPage = window.location.pathname.split('/').pop();
+      const navItems = document.querySelectorAll('.sidebar-nav-item');
+      
+      navItems.forEach(item => {
+        const href = item.getAttribute('href');
+        if (href && href.includes(currentPage)) {
+          item.classList.add('active');
+        }
+      });
+    </script>
     <script type="module" src="../js/openWebInterface.js"></script>
   </body>
 </html>

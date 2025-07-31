@@ -2,113 +2,259 @@
 <html>
   <head>
     <meta charset="UTF-8">
+    <link rel="stylesheet" href="../css/material-design.css">
     <link rel="stylesheet" href="../css/style.css">
-    <link rel="stylesheet" href="../node_modules/@fortawesome/fontawesome-free/css/all.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'  https://cdn.jsdelivr.net/; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net/; font-src 'self' https://fonts.gstatic.com;">
-    <meta http-equiv="X-Content-Security-Policy" content="default-src 'self'; script-src 'self'  https://cdn.jsdelivr.net/; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net/; font-src 'self' https://fonts.gstatic.com;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'  https://cdn.jsdelivr.net/; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net/ 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com;">
+    <meta http-equiv="X-Content-Security-Policy" content="default-src 'self'; script-src 'self'  https://cdn.jsdelivr.net/; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net/ 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com;">
     <title>ImSwitch</title>
   </head>
   <body>
-    <div id="parent" class="container h-100">
-      <div class="row align-items-center">
-        <div class="col">
+    <div class="app-container">
+      <!-- Material Design App Bar -->
+      <header class="mdc-top-app-bar elevation-4">
+        <div class="mdc-top-app-bar__row">
+          <section class="mdc-top-app-bar__section mdc-top-app-bar__section--align-start">
+            <button class="mdc-icon-button mdc-top-app-bar__navigation-icon" id="menuToggle">
+              <span class="material-icons">menu</span>
+            </button>
+            <span class="mdc-top-app-bar__title">Install ImSwitch</span>
+          </section>
+          <section class="mdc-top-app-bar__section mdc-top-app-bar__section--align-end">
+            <button class="mdc-icon-button theme-toggle" id="themeToggle" title="Toggle Light/Dark Theme">
+              <span class="material-icons">brightness_6</span>
+            </button>
+            <img src="../assets/icons/icon.png" alt="ImSwitch Logo" class="app-logo" />
+          </section>
+        </div>
+      </header>
+
+      <!-- Sidebar/Navigation Drawer -->
+      <nav class="sidebar elevation-2" id="sidebar">
+        <ul class="sidebar-nav">
+          <li>
+            <a href="./menu.html" class="sidebar-nav-item">
+              <span class="material-icons sidebar-nav-icon">home</span>
+              <span class="sidebar-nav-text">Home</span>
+            </a>
+          </li>
+          <li>
+            <a href="./installImSwitch.html" class="sidebar-nav-item active">
+              <span class="material-icons sidebar-nav-icon">download</span>
+              <span class="sidebar-nav-text">Install ImSwitch</span>
+            </a>
+          </li>
+          <li>
+            <a href="./startImSwitch.html" class="sidebar-nav-item">
+              <span class="material-icons sidebar-nav-icon">play_arrow</span>
+              <span class="sidebar-nav-text">Start ImSwitch</span>
+            </a>
+          </li>
+          <li>
+            <a href="#" class="sidebar-nav-item" id="openWebInterface">
+              <span class="material-icons sidebar-nav-icon">web</span>
+              <span class="sidebar-nav-text">Open Web Interface</span>
+            </a>
+          </li>
+          <li>
+            <a href="./discoverMicroscopes.html" class="sidebar-nav-item">
+              <span class="material-icons sidebar-nav-icon">search</span>
+              <span class="sidebar-nav-text">Discover Microscopes</span>
+            </a>
+          </li>
+          <li>
+            <a href="./updateImSwitch.html" class="sidebar-nav-item">
+              <span class="material-icons sidebar-nav-icon">update</span>
+              <span class="sidebar-nav-text">Update ImSwitch</span>
+            </a>
+          </li>
+          <li>
+            <a href="./installESPDrivers.html" class="sidebar-nav-item">
+              <span class="material-icons sidebar-nav-icon">usb</span>
+              <span class="sidebar-nav-text">Install Drivers</span>
+            </a>
+          </li>
+          <li>
+            <a href="./updateESP/index.html" class="sidebar-nav-item">
+              <span class="material-icons sidebar-nav-icon">memory</span>
+              <span class="sidebar-nav-text">Update UC2-ESP32</span>
+            </a>
+          </li>
+          <li>
+            <a href="./setupConfig.html" class="sidebar-nav-item">
+              <span class="material-icons sidebar-nav-icon">settings</span>
+              <span class="sidebar-nav-text">Setup Configuration</span>
+            </a>
+          </li>
+          <li>
+            <a href="./fastAPI.html" class="sidebar-nav-item">
+              <span class="material-icons sidebar-nav-icon">api</span>
+              <span class="sidebar-nav-text">FastAPI</span>
+            </a>
+          </li>
+          <li>
+            <a href="./uninstallImSwitch.html" class="sidebar-nav-item">
+              <span class="material-icons sidebar-nav-icon">delete</span>
+              <span class="sidebar-nav-text">Uninstall ImSwitch</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+
+      <!-- Main Content Area -->
+      <main class="main-content" id="mainContent">
+        <div class="mdc-card elevation-1" style="padding: 24px; margin-bottom: 24px;">
           <h1>Install ImSwitch</h1>
           <p>
-            <br>
-              This will install ImSwitch and all its dependencies from scratch. The installation process includes:
-              <br><br>
-              <strong>1. Miniforge Installation:</strong> Downloads and installs Miniforge (conda package manager)<br>
-              <strong>2. Environment Setup:</strong> Creates a Python 3.11 environment with required packages<br>
-              <strong>3. Package Installation:</strong> Installs ImSwitch and UC2-REST from GitHub<br>
-              <strong>4. Configuration:</strong> Downloads ImSwitch configuration files<br>
-              <br>
-              This process may take several minutes depending on your internet connection.
-            <br>
+            This will install ImSwitch and all its dependencies from scratch. The installation process includes:
+          </p>
+          <div style="margin: 16px 0;">
+            <div style="display: flex; align-items: center; margin: 8px 0;">
+              <span class="material-icons" style="margin-right: 12px; color: var(--mdc-theme-primary);">download</span>
+              <strong>1. Miniforge Installation:</strong> Downloads and installs Miniforge (conda package manager)
+            </div>
+            <div style="display: flex; align-items: center; margin: 8px 0;">
+              <span class="material-icons" style="margin-right: 12px; color: var(--mdc-theme-primary);">settings</span>
+              <strong>2. Environment Setup:</strong> Creates a Python 3.11 environment with required packages
+            </div>
+            <div style="display: flex; align-items: center; margin: 8px 0;">
+              <span class="material-icons" style="margin-right: 12px; color: var(--mdc-theme-primary);">extension</span>
+              <strong>3. Package Installation:</strong> Installs ImSwitch and UC2-REST from GitHub
+            </div>
+            <div style="display: flex; align-items: center; margin: 8px 0;">
+              <span class="material-icons" style="margin-right: 12px; color: var(--mdc-theme-primary);">folder</span>
+              <strong>4. Configuration:</strong> Downloads ImSwitch configuration files
+            </div>
+          </div>
+          <p>
+            This process may take several minutes depending on your internet connection.
           </p>
         </div>
-      </div>
-      <div class="row align-items-center m-4">
-        <div class="col d-grid gap-2">
-            <a role="button" class="btn btn-warning" id="back" href="./menu.html">Back</a>
-        </div>
-        <div class="col d-grid">
-            <button type="button" class="btn btn-primary" id="installImSwitch">Install ImSwitch</button>
-        </div>
-      </div>
-      
-      <!-- Installation Status -->
-      <div class="row align-items-center m-4" id="statusContainer" style="display: none;">
-        <div class="col">
-          <h5>Installation Progress</h5>
-          <div class="progress mb-3">
-            <div class="progress-bar progress-bar-striped progress-bar-animated" id="progressBar" role="progressbar" style="width: 0%"></div>
+
+        <div class="mdc-card elevation-1" style="padding: 24px; margin-bottom: 24px;">
+          <h3>Actions</h3>
+          <div style="display: flex; gap: 16px; margin-top: 16px; flex-wrap: wrap;">
+            <a href="./menu.html" class="mdc-button mdc-button--outlined">
+              <span class="mdc-button__label">Back to Menu</span>
+            </a>
+            <button type="button" class="mdc-button mdc-button--raised mdc-button--primary" id="installImSwitch">
+              <span class="mdc-button__label">Install ImSwitch</span>
+            </button>
           </div>
-          <p id="statusText">Ready to install...</p>
+        </div>
+        
+        <!-- Installation Status -->
+        <div class="mdc-card elevation-1" id="statusContainer" style="display: none; padding: 24px; margin-bottom: 24px;">
+          <h3>Installation Progress</h3>
+          <div style="background-color: rgba(98, 0, 238, 0.1); border-radius: 4px; height: 8px; overflow: hidden; margin: 16px 0;">
+            <div id="progressBar" style="background-color: var(--mdc-theme-primary); height: 100%; width: 0%; transition: width 0.3s ease;"></div>
+          </div>
+          <p id="statusText" style="margin: 16px 0;">Ready to install...</p>
+          
           <div id="detailsContainer">
-            <h6>Installation Steps:</h6>
-            <ul class="list-group">
-              <li class="list-group-item d-flex justify-content-between align-items-center" id="step1">
-                <span>1. Install Miniforge</span>
-                <span class="badge bg-secondary" id="step1-status">Pending</span>
-              </li>
-              <li class="list-group-item d-flex justify-content-between align-items-center" id="step2">
-                <span>2. Create Conda Environment</span>
-                <span class="badge bg-secondary" id="step2-status">Pending</span>
-              </li>
-              <li class="list-group-item d-flex justify-content-between align-items-center" id="step3">
-                <span>3. Install Packages</span>
-                <span class="badge bg-secondary" id="step3-status">Pending</span>
-              </li>
-              <li class="list-group-item d-flex justify-content-between align-items-center" id="step4">
-                <span>4. Download Configuration</span>
-                <span class="badge bg-secondary" id="step4-status">Pending</span>
-              </li>
-            </ul>
+            <h4>Installation Steps:</h4>
+            <div style="margin: 16px 0;">
+              <div class="installation-step" id="step1" style="display: flex; align-items: center; margin: 12px 0; padding: 12px; border-radius: 4px; background-color: rgba(255,255,255,0.05);">
+                <span class="material-icons step-icon" style="margin-right: 12px; color: var(--mdc-theme-secondary);">radio_button_unchecked</span>
+                <span style="flex: 1;">1. Install Miniforge</span>
+                <span class="step-status" id="step1-status" style="padding: 4px 8px; border-radius: 4px; background-color: rgba(255,255,255,0.1); font-size: 0.8rem;">Pending</span>
+              </div>
+              <div class="installation-step" id="step2" style="display: flex; align-items: center; margin: 12px 0; padding: 12px; border-radius: 4px; background-color: rgba(255,255,255,0.05);">
+                <span class="material-icons step-icon" style="margin-right: 12px; color: var(--mdc-theme-secondary);">radio_button_unchecked</span>
+                <span style="flex: 1;">2. Create Conda Environment</span>
+                <span class="step-status" id="step2-status" style="padding: 4px 8px; border-radius: 4px; background-color: rgba(255,255,255,0.1); font-size: 0.8rem;">Pending</span>
+              </div>
+              <div class="installation-step" id="step3" style="display: flex; align-items: center; margin: 12px 0; padding: 12px; border-radius: 4px; background-color: rgba(255,255,255,0.05);">
+                <span class="material-icons step-icon" style="margin-right: 12px; color: var(--mdc-theme-secondary);">radio_button_unchecked</span>
+                <span style="flex: 1;">3. Install Packages</span>
+                <span class="step-status" id="step3-status" style="padding: 4px 8px; border-radius: 4px; background-color: rgba(255,255,255,0.1); font-size: 0.8rem;">Pending</span>
+              </div>
+              <div class="installation-step" id="step4" style="display: flex; align-items: center; margin: 12px 0; padding: 12px; border-radius: 4px; background-color: rgba(255,255,255,0.05);">
+                <span class="material-icons step-icon" style="margin-right: 12px; color: var(--mdc-theme-secondary);">radio_button_unchecked</span>
+                <span style="flex: 1;">4. Download Configuration</span>
+                <span class="step-status" id="step4-status" style="padding: 4px 8px; border-radius: 4px; background-color: rgba(255,255,255,0.1); font-size: 0.8rem;">Pending</span>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
 
-    <!-- Success Modal -->
-    <div class="modal" id="successModal" tabindex="-1" role="dialog" aria-labelledby="success" data-bs-backdrop='static' aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered" role="document">
-        <div class="modal-content">
-          <div class="modal-header text-center">
-            <p class="modal-title fw-bold fs-5 w-100" id="successTitle">Installation Complete</p>
+        <!-- Success Message -->
+        <div class="mdc-card elevation-1" id="successArea" style="display: none; padding: 24px; margin-bottom: 24px; background-color: #4caf50; color: white;">
+          <div style="display: flex; align-items: center;">
+            <span class="material-icons" style="margin-right: 16px; font-size: 48px;">check_circle</span>
+            <div>
+              <h3 style="margin: 0; color: white;">Installation Complete!</h3>
+              <p style="margin: 8px 0 0 0; color: white;">ImSwitch has been successfully installed!</p>
+            </div>
           </div>
-          <div class="modal-body fa-3x text-center">
-            <i class="fas fa-check-circle text-success"></i>
-            <p class="mt-3">ImSwitch has been successfully installed!</p>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-success" id="goToStart">Start ImSwitch</button>
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <div style="margin-top: 16px;">
+            <a href="./startImSwitch.html" class="mdc-button" style="background-color: rgba(255,255,255,0.2); color: white; margin-right: 8px;">
+              <span class="mdc-button__label">Start ImSwitch</span>
+            </a>
+            <a href="./menu.html" class="mdc-button" style="background-color: rgba(255,255,255,0.1); color: white;">
+              <span class="mdc-button__label">Back to Menu</span>
+            </a>
           </div>
         </div>
-      </div>
-    </div>
 
-    <!-- Error Modal -->
-    <div class="modal" id="errorModal" tabindex="-1" role="dialog" aria-labelledby="error" data-bs-backdrop='static' aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered" role="document">
-        <div class="modal-content">
-          <div class="modal-header text-center">
-            <p class="modal-title fw-bold fs-5 w-100" id="errorTitle">Installation Failed</p>
-          </div>
-          <div class="modal-body fa-3x text-center">
-            <i class="fas fa-times text-danger"></i>
-            <p class="mt-3" id="errorMessage">An error occurred during installation.</p>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Close</button>
-          </div>
+        <!-- Error Display -->
+        <div class="mdc-card elevation-1" id="errorArea" style="display: none; padding: 24px; margin-bottom: 24px; background-color: #f44336; color: white;">
+          <h3>Installation Error</h3>
+          <div id="errorMessage" style="margin: 16px 0;"></div>
+          <button type="button" class="mdc-button" style="background-color: rgba(255,255,255,0.1); color: white;" onclick="document.getElementById('errorArea').style.display='none'">
+            <span class="mdc-button__label">Dismiss</span>
+          </button>
         </div>
-      </div>
+      </main>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
-    <script type="module" src="../js/install.js"></script>
-    </body>
+    <div class="loadmessage" id="loadmessage"></div>
+    <div class="loading" id="loadbar"></div>
+    
+    <script>
+      // Menu toggle functionality
+      const menuToggle = document.getElementById('menuToggle');
+      const sidebar = document.getElementById('sidebar');
+      const mainContent = document.getElementById('mainContent');
+
+      menuToggle.addEventListener('click', () => {
+        sidebar.classList.toggle('collapsed');
+        mainContent.classList.toggle('sidebar-collapsed');
+      });
+
+      // Theme toggle functionality
+      const themeToggle = document.getElementById('themeToggle');
+      const root = document.documentElement;
+      let isDarkMode = true; // Default to dark mode
+
+      themeToggle.addEventListener('click', () => {
+        isDarkMode = !isDarkMode;
+        
+        if (isDarkMode) {
+          // Dark theme
+          root.style.setProperty('--mdc-theme-background', '#121212');
+          root.style.setProperty('--mdc-theme-surface', '#1e1e1e');
+          root.style.setProperty('--mdc-theme-on-background', '#ffffff');
+          root.style.setProperty('--mdc-theme-on-surface', '#ffffff');
+        } else {
+          // Light theme
+          root.style.setProperty('--mdc-theme-background', '#ffffff');
+          root.style.setProperty('--mdc-theme-surface', '#f5f5f5');
+          root.style.setProperty('--mdc-theme-on-background', '#000000');
+          root.style.setProperty('--mdc-theme-on-surface', '#000000');
+        }
+      });
+
+      // Auto-collapse sidebar on mobile
+      if (window.innerWidth <= 768) {
+        sidebar.classList.add('collapsed');
+        mainContent.classList.add('sidebar-collapsed');
+      }
+    </script>
+    <script type="module" src="../js/openWebInterface.js"></script>
+    <script type="module" src="../js/align.js"></script>
+    <script type="module" src="../js/installImSwitchDetailed.js"></script>
+  </body>
 </html>

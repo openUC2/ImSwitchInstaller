@@ -155,6 +155,18 @@ function initializeSidebar() {
   }
 }
 
+// Auto-initialize sidebar when script loads
+document.addEventListener('DOMContentLoaded', () => {
+  const sidebarContainer = document.getElementById('sidebarContainer');
+  if (sidebarContainer) {
+    // Inject sidebar HTML
+    sidebarContainer.innerHTML = createSidebar();
+    
+    // Initialize sidebar functionality
+    initializeSidebar();
+  }
+});
+
 // Export functions for use in other scripts
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { createSidebar, createHeaderWithMenu, initializeSidebar };

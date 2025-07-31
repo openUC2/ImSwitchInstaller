@@ -24,7 +24,9 @@
     "semver": "^7.5.4",
     "tar": "^6.1.11",
     "vanilla-jsoneditor": "^0.23.0",
-    "windows-shortcuts": "^0.1.6"
+    "windows-shortcuts": "^0.1.6",
+    "material-components-web": "^14.0.0",
+    "@material/web": "^1.0.1"
   },
   "devDependencies": {
     "@electron-forge/cli": "^6.0.3",

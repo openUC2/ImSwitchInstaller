@@ -1,0 +1,396 @@
+/* Material Design CSS for ImSwitch Installer */
+
+/* Import Roboto font */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+
+/* Import Material Icons */
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+
+/* Root CSS variables for dark theme */
+:root {
+  --mdc-theme-primary: #6200ee;
+  --mdc-theme-secondary: #03dac6;
+  --mdc-theme-background: #121212;
+  --mdc-theme-surface: #1e1e1e;
+  --mdc-theme-on-primary: #ffffff;
+  --mdc-theme-on-secondary: #000000;
+  --mdc-theme-on-surface: #ffffff;
+  --mdc-theme-on-background: #ffffff;
+  --sidebar-width: 240px;
+  --sidebar-collapsed-width: 60px;
+}
+
+/* Body styling to match React app */
+body {
+  margin: 0;
+  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--mdc-theme-background);
+  color: var(--mdc-theme-on-background);
+  overflow: hidden;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+/* App container with sidebar layout */
+.app-container {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* Material Design App Bar */
+.mdc-top-app-bar {
+  background-color: var(--mdc-theme-primary);
+  color: var(--mdc-theme-on-primary);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 7;
+  height: 64px;
+  display: flex;
+  align-items: center;
+}
+
+.mdc-top-app-bar__row {
+  display: flex;
+  width: 100%;
+  height: 64px;
+  align-items: center;
+  padding: 0 16px;
+}
+
+.mdc-top-app-bar__section {
+  display: flex;
+  align-items: center;
+}
+
+.mdc-top-app-bar__section--align-start {
+  flex: 1;
+}
+
+.mdc-top-app-bar__section--align-end {
+  justify-content: flex-end;
+}
+
+.mdc-top-app-bar__title {
+  font-weight: 700;
+  font-size: 1.25rem;
+  margin-left: 16px;
+}
+
+.mdc-icon-button {
+  width: 48px;
+  height: 48px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s ease;
+  outline: none;
+}
+
+.mdc-icon-button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.mdc-icon-button:active {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.mdc-icon-button .material-icons {
+  font-size: 24px;
+}
+
+/* Sidebar/Drawer styling */
+.sidebar {
+  width: var(--sidebar-width);
+  background-color: var(--mdc-theme-surface);
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 64px; /* Below app bar */
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
+  overflow-y: auto;
+  transition: width 0.3s ease;
+  z-index: 6;
+}
+
+.sidebar.collapsed {
+  width: var(--sidebar-collapsed-width);
+}
+
+.sidebar-nav {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0;
+}
+
+.sidebar-nav-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  text-decoration: none;
+  color: var(--mdc-theme-on-surface);
+  border-radius: 0 24px 24px 0;
+  margin: 4px 12px 4px 0;
+}
+
+.sidebar-nav-item:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.sidebar-nav-item.active {
+  background-color: rgba(98, 0, 238, 0.12);
+  color: var(--mdc-theme-primary);
+}
+
+.sidebar-nav-icon {
+  margin-right: 12px;
+  font-size: 24px;
+  width: 24px;
+  text-align: center;
+}
+
+.sidebar.collapsed .sidebar-nav-text {
+  display: none;
+}
+
+.sidebar.collapsed .sidebar-nav-icon {
+  margin-right: 0;
+}
+
+/* Main content area */
+.main-content {
+  margin-left: var(--sidebar-width);
+  margin-top: 64px; /* Below app bar */
+  padding: 24px;
+  background-color: var(--mdc-theme-background);
+  min-height: calc(100vh - 64px);
+  transition: margin-left 0.3s ease;
+}
+
+.main-content.sidebar-collapsed {
+  margin-left: var(--sidebar-collapsed-width);
+}
+
+/* Material Design Buttons */
+.mdc-button {
+  font-size: 1.2rem;
+  padding: 12px 24px;
+  margin: 8px;
+  min-width: 200px;
+  font-weight: 500;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-transform: uppercase;
+  letter-spacing: 0.0892857143em;
+  font-family: 'Roboto', sans-serif;
+  transition: all 0.2s ease;
+  outline: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.mdc-button:hover {
+  filter: brightness(1.1);
+  box-shadow: 0px 2px 4px -1px rgba(0,0,0,0.2), 0px 4px 5px 0px rgba(0,0,0,0.14), 0px 1px 10px 0px rgba(0,0,0,0.12);
+}
+
+.mdc-button:active {
+  transform: scale(0.98);
+}
+
+.mdc-button__label {
+  font-size: 1.2rem;
+  font-weight: 500;
+}
+
+.mdc-button--raised {
+  background-color: var(--mdc-theme-primary);
+  color: var(--mdc-theme-on-primary);
+  box-shadow: 0px 3px 1px -2px rgba(0,0,0,0.2), 0px 2px 2px 0px rgba(0,0,0,0.14), 0px 1px 5px 0px rgba(0,0,0,0.12);
+}
+
+.mdc-button--outlined {
+  border: 1px solid var(--mdc-theme-primary);
+  color: var(--mdc-theme-primary);
+  background-color: transparent;
+}
+
+.mdc-button--outlined:hover {
+  background-color: rgba(98, 0, 238, 0.08);
+}
+
+/* Button variants for different actions */
+.mdc-button--primary {
+  background-color: var(--mdc-theme-primary);
+  color: var(--mdc-theme-on-primary);
+}
+
+.mdc-button--secondary {
+  background-color: var(--mdc-theme-secondary);
+  color: var(--mdc-theme-on-secondary);
+}
+
+.mdc-button--success {
+  background-color: #4caf50;
+  color: white;
+}
+
+.mdc-button--danger {
+  background-color: #f44336;
+  color: white;
+}
+
+.mdc-button--info {
+  background-color: #2196f3;
+  color: white;
+}
+
+/* Material Design Cards */
+.mdc-card {
+  background-color: var(--mdc-theme-surface);
+  color: var(--mdc-theme-on-surface);
+  margin: 16px 0;
+  border-radius: 8px;
+  transition: box-shadow 0.2s ease;
+}
+
+.mdc-card:hover {
+  box-shadow: 0px 2px 4px -1px rgba(0,0,0,0.2), 0px 4px 5px 0px rgba(0,0,0,0.14), 0px 1px 10px 0px rgba(0,0,0,0.12);
+}
+
+/* Header styling */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Roboto', sans-serif;
+  font-weight: 500;
+  color: var(--mdc-theme-on-background);
+}
+
+h1 {
+  font-size: 2.125rem;
+  font-weight: 400;
+  margin-bottom: 16px;
+}
+
+/* Typography */
+p {
+  font-family: 'Roboto', sans-serif;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--mdc-theme-on-background);
+}
+
+/* Menu grid for buttons */
+.menu-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+  max-width: 800px;
+}
+
+/* Theme toggle button */
+.theme-toggle {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* Avatar/Logo styling */
+.app-logo {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  margin-left: 16px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .sidebar {
+    width: var(--sidebar-collapsed-width);
+  }
+  
+  .main-content {
+    margin-left: var(--sidebar-collapsed-width);
+  }
+  
+  .menu-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Loading and status messages */
+.loadmessage {
+  position: fixed;
+  font-family: 'Roboto', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  padding-left: 16px;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 32px;
+  z-index: 10;
+  background-color: var(--mdc-theme-surface);
+  color: var(--mdc-theme-on-surface);
+  display: flex;
+  align-items: center;
+}
+
+.loading {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  background-color: var(--mdc-theme-secondary);
+  height: 4px;
+  transition: width 0.3s ease;
+}
+
+/* Material Design elevation shadows */
+.elevation-1 {
+  box-shadow: 0px 2px 1px -1px rgba(0,0,0,0.2), 0px 1px 1px 0px rgba(0,0,0,0.14), 0px 1px 3px 0px rgba(0,0,0,0.12);
+}
+
+.elevation-2 {
+  box-shadow: 0px 3px 1px -2px rgba(0,0,0,0.2), 0px 2px 2px 0px rgba(0,0,0,0.14), 0px 1px 5px 0px rgba(0,0,0,0.12);
+}
+
+.elevation-4 {
+  box-shadow: 0px 2px 4px -1px rgba(0,0,0,0.2), 0px 4px 5px 0px rgba(0,0,0,0.14), 0px 1px 10px 0px rgba(0,0,0,0.12);
+}
+
+/* Hide scrollbars but keep functionality */
+.sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}

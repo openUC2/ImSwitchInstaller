@@ -2,102 +2,152 @@
 <html>
   <head>
     <meta charset="UTF-8">
+    <link rel="stylesheet" href="../css/material-design.css">
     <link rel="stylesheet" href="../css/style.css">
-    <link rel="stylesheet" href="../node_modules/@fortawesome/fontawesome-free/css/all.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'  https://cdn.jsdelivr.net/; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net/; font-src 'self' https://fonts.gstatic.com;">
-    <meta http-equiv="X-Content-Security-Policy" content="default-src 'self'; script-src 'self'  https://cdn.jsdelivr.net/; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net/; font-src 'self' https://fonts.gstatic.com;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'  https://cdn.jsdelivr.net/; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net/ 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com;">
+    <meta http-equiv="X-Content-Security-Policy" content="default-src 'self'; script-src 'self'  https://cdn.jsdelivr.net/; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net/ 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com;">
     <title>ImSwitch</title>
   </head>
   <body>
-    <div id="parent" class="container h-100">
-      <div class="row align-items-center">
-        <div class="col">
-          <h1>Update ImSwitch</h1>
-          <p>
-            <br>
-              This will pull and install the latest version of imswitch from https://github.com/openUC2/imswitch.            
-            <br>
-          </p>
+    <div class="app-container">
+      <!-- Material Design App Bar -->
+      <header class="mdc-top-app-bar elevation-4">
+        <div class="mdc-top-app-bar__row">
+          <section class="mdc-top-app-bar__section mdc-top-app-bar__section--align-start">
+            <button class="mdc-icon-button mdc-top-app-bar__navigation-icon" id="menuToggle">
+              <span class="material-icons">menu</span>
+            </button>
+            <span class="mdc-top-app-bar__title">Update ImSwitch</span>
+          </section>
+          <section class="mdc-top-app-bar__section mdc-top-app-bar__section--align-end">
+            <button class="mdc-icon-button theme-toggle" id="themeToggle" title="Toggle Light/Dark Theme">
+              <span class="material-icons">brightness_6</span>
+            </button>
+            <img src="../assets/icons/icon.png" alt="ImSwitch Logo" class="app-logo" />
+          </section>
         </div>
+      </header>
+
+      <!-- Sidebar -->
+      <div class="sidebar-container" id="sidebarContainer">
+        <!-- Sidebar will be inserted here by sidebar.js -->
       </div>
-      <div class="row align-items-center m-4">
-        <div class="col d-grid gap-2">
-            <a role="button" class="btn btn-warning" id="back" href="./menu.html">Back</a>
-        </div>
-        <div class="col d-grid">
-            <button type="button" class="btn btn-primary" id="updateImSwitch">Update ImSwitch</button>
-        </div>
-      </div>
-      
-      <!-- Update Status -->
-      <div class="row align-items-center m-4" id="statusContainer" style="display: none;">
-        <div class="col">
-          <h5>Update Progress</h5>
-          <div class="progress mb-3">
-            <div class="progress-bar progress-bar-striped progress-bar-animated" id="progressBar" role="progressbar" style="width: 0%"></div>
+
+      <!-- Main Content -->
+      <main class="main-content" id="mainContent">
+        <div class="content-container">
+          <div class="mdc-card content-card elevation-2">
+            <div class="mdc-card__content">
+              <h2 class="mdc-typography--headline6">Update ImSwitch</h2>
+              <p class="mdc-typography--body1">
+                This will pull and install the latest version of ImSwitch from 
+                <a href="https://github.com/openUC2/imswitch" target="_blank" class="link-primary">
+                  https://github.com/openUC2/imswitch
+                </a>
+              </p>
+            </div>
           </div>
-          <p id="statusText">Ready to update...</p>
-          <div id="detailsContainer">
-            <h6>Update Steps:</h6>
-            <ul class="list-group">
-              <li class="list-group-item d-flex justify-content-between align-items-center" id="step1">
-                <span>1. Update UC2-REST Package</span>
-                <span class="badge bg-secondary" id="step1-status">Pending</span>
-              </li>
-              <li class="list-group-item d-flex justify-content-between align-items-center" id="step2">
-                <span>2. Update ImSwitch Package</span>
-                <span class="badge bg-secondary" id="step2-status">Pending</span>
-              </li>
-              <li class="list-group-item d-flex justify-content-between align-items-center" id="step3">
-                <span>3. Verify Installation</span>
-                <span class="badge bg-secondary" id="step3-status">Pending</span>
-              </li>
-            </ul>
+
+          <div class="action-buttons">
+            <button class="mdc-button mdc-button--raised" id="updateImSwitch">
+              <span class="mdc-button__label">Update ImSwitch</span>
+            </button>
+          </div>
+          
+          <!-- Update Status -->
+          <div class="status-container" id="statusContainer" style="display: none;">
+            <div class="mdc-card content-card elevation-2">
+              <div class="mdc-card__content">
+                <h3 class="mdc-typography--headline6">Update Progress</h3>
+                <div class="progress-container">
+                  <div class="mdc-linear-progress" id="progressBar" role="progressbar">
+                    <div class="mdc-linear-progress__buffer"></div>
+                    <div class="mdc-linear-progress__bar mdc-linear-progress__primary-bar">
+                      <span class="mdc-linear-progress__bar-inner"></span>
+                    </div>
+                  </div>
+                </div>
+                <p class="mdc-typography--body1" id="statusText">Ready to update...</p>
+                
+                <div class="update-steps" id="detailsContainer">
+                  <h4 class="mdc-typography--subtitle1">Update Steps:</h4>
+                  <div class="step-list">
+                    <div class="step-item" id="step1">
+                      <span class="step-text">1. Update UC2-REST Package</span>
+                      <span class="status-badge secondary" id="step1-status">Pending</span>
+                    </div>
+                    <div class="step-item" id="step2">
+                      <span class="step-text">2. Update ImSwitch Package</span>
+                      <span class="status-badge secondary" id="step2-status">Pending</span>
+                    </div>
+                    <div class="step-item" id="step3">
+                      <span class="step-text">3. Verify Installation</span>
+                      <span class="status-badge secondary" id="step3-status">Pending</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
 
     <!-- Success Modal -->
-    <div class="modal" id="successModal" tabindex="-1" role="dialog" aria-labelledby="success" data-bs-backdrop='static' aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered" role="document">
-        <div class="modal-content">
-          <div class="modal-header text-center">
-            <p class="modal-title fw-bold fs-5 w-100" id="successTitle">Update Complete</p>
-          </div>
-          <div class="modal-body fa-3x text-center">
-            <i class="fas fa-check-circle text-success"></i>
-            <p class="mt-3">ImSwitch has been successfully updated!</p>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-success" id="goToStart">Start ImSwitch</button>
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+    <div class="modal-overlay" id="successModal" style="display: none;">
+      <div class="mdc-dialog">
+        <div class="mdc-dialog__container">
+          <div class="mdc-dialog__surface" role="alertdialog">
+            <div class="mdc-dialog__header">
+              <h2 class="mdc-dialog__title">Update Complete</h2>
+            </div>
+            <div class="mdc-dialog__content">
+              <div class="dialog-icon success">
+                <span class="material-icons">check_circle</span>
+              </div>
+              <p class="mdc-typography--body1">ImSwitch has been successfully updated!</p>
+            </div>
+            <div class="mdc-dialog__actions">
+              <button type="button" class="mdc-button mdc-button--raised" id="goToStart">
+                <span class="mdc-button__label">Start ImSwitch</span>
+              </button>
+              <button type="button" class="mdc-button" id="closeSuccessModal">
+                <span class="mdc-button__label">Close</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Error Modal -->
-    <div class="modal" id="errorModal" tabindex="-1" role="dialog" aria-labelledby="error" data-bs-backdrop='static' aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered" role="document">
-        <div class="modal-content">
-          <div class="modal-header text-center">
-            <p class="modal-title fw-bold fs-5 w-100" id="errorTitle">Update Failed</p>
-          </div>
-          <div class="modal-body fa-3x text-center">
-            <i class="fas fa-times text-danger"></i>
-            <p class="mt-3" id="errorMessage">An error occurred during update.</p>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Close</button>
+    <div class="modal-overlay" id="errorModal" style="display: none;">
+      <div class="mdc-dialog">
+        <div class="mdc-dialog__container">
+          <div class="mdc-dialog__surface" role="alertdialog">
+            <div class="mdc-dialog__header">
+              <h2 class="mdc-dialog__title">Update Failed</h2>
+            </div>
+            <div class="mdc-dialog__content">
+              <div class="dialog-icon error">
+                <span class="material-icons">error</span>
+              </div>
+              <p class="mdc-typography--body1" id="errorMessage">An error occurred during update.</p>
+            </div>
+            <div class="mdc-dialog__actions">
+              <button type="button" class="mdc-button" id="closeErrorModal">
+                <span class="mdc-button__label">Close</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+    <script type="module" src="../js/sidebar.js"></script>
     <script type="module" src="../js/update.js"></script>
     </body>
 </html>

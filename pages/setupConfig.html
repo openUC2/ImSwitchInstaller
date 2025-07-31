@@ -1,47 +1,91 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta charset="UTF-8" />
-    <link rel="stylesheet" href="../css/style.css" />
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-      integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC"
-      crossorigin="anonymous"
-    />
-
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="../css/material-design.css">
+    <link rel="stylesheet" href="../css/style.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="../node_modules/jsoneditor/dist/jsoneditor.min.css" rel="stylesheet" type="text/css">
     <title>ImSwitch Installer</title>
   </head>
   <body>
-    <div id="parent" class="container h-100">
-      <div class="row align-items-center">
-        <div class="col">
-          <h1>JSON Editor</h1>
-          <link
-            href="../node_modules/jsoneditor/dist/jsoneditor.min.css"
-            rel="stylesheet"
-            type="text/css"
-          />
-          <p id="version"></p>
-          <p>
-            <br />
-            Modify the JSON file below to customize the ImSwitch settings.
-            <br />
-          </p>
+    <div class="app-container">
+      <!-- Material Design App Bar -->
+      <header class="mdc-top-app-bar elevation-4">
+        <div class="mdc-top-app-bar__row">
+          <section class="mdc-top-app-bar__section mdc-top-app-bar__section--align-start">
+            <button class="mdc-icon-button mdc-top-app-bar__navigation-icon" id="menuToggle">
+              <span class="material-icons">menu</span>
+            </button>
+            <span class="mdc-top-app-bar__title">Setup Configuration</span>
+          </section>
+          <section class="mdc-top-app-bar__section mdc-top-app-bar__section--align-end">
+            <button class="mdc-icon-button theme-toggle" id="themeToggle" title="Toggle Light/Dark Theme">
+              <span class="material-icons">brightness_6</span>
+            </button>
+            <img src="../assets/icons/icon.png" alt="ImSwitch Logo" class="app-logo" />
+          </section>
         </div>
+      </header>
+
+      <!-- Sidebar -->
+      <div class="sidebar-container" id="sidebarContainer">
+        <!-- Sidebar will be inserted here by sidebar.js -->
       </div>
-      <div class="row align-items-center">
-        <div class="col d-grid">
-          <a role="button" class="btn btn-primary" href="./index.html">Back</a>
-          <select id="fileSelector"></select>
-          <button id="saveButton">Save Changes</button>
-          <div id="jsoneditor" style="width: 800px; height: 400px;"></div>
-        
-          <script src="../node_modules/jsoneditor/dist/jsoneditor.min.js"></script>
-          <script src="configs/renderer.js"></script>
+
+      <!-- Main Content -->
+      <main class="main-content" id="mainContent">
+        <div class="content-container">
+          <div class="mdc-card content-card elevation-2">
+            <div class="mdc-card__content">
+              <h2 class="mdc-typography--headline6">JSON Configuration Editor</h2>
+              <p id="version" class="mdc-typography--body2"></p>
+              <p class="mdc-typography--body1">
+                Modify the JSON file below to customize the ImSwitch settings and configuration parameters.
+              </p>
+            </div>
+          </div>
+
+          <div class="config-editor-container">
+            <div class="mdc-card editor-card elevation-2">
+              <div class="mdc-card__content">
+                <div class="editor-controls">
+                  <div class="mdc-select mdc-select--outlined" id="fileSelectorContainer">
+                    <div class="mdc-select__anchor">
+                      <span class="mdc-notched-outline">
+                        <span class="mdc-notched-outline__leading"></span>
+                        <span class="mdc-notched-outline__notch">
+                          <span class="mdc-floating-label">Select Configuration File</span>
+                        </span>
+                        <span class="mdc-notched-outline__trailing"></span>
+                      </span>
+                      <span class="mdc-select__selected-text-container">
+                        <span class="mdc-select__selected-text" id="fileSelector"></span>
+                      </span>
+                      <span class="mdc-select__dropdown-icon">
+                        <span class="material-icons">arrow_drop_down</span>
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <button class="mdc-button mdc-button--raised" id="saveButton">
+                    <span class="mdc-button__label">Save Changes</span>
+                  </button>
+                </div>
+                
+                <div class="json-editor-wrapper">
+                  <div id="jsoneditor"></div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      </main>
     </div>
+
     <script src="../node_modules/jsoneditor/dist/jsoneditor.min.js"></script>
-  </body>
+    <script src="configs/renderer.js"></script>
+    <script type="module" src="../js/sidebar.js"></script>
+    </body>
 </html>

@@ -178,11 +178,15 @@ body {
   padding: 24px;
   background-color: var(--mdc-theme-background);
   min-height: calc(100vh - 64px);
-  transition: margin-left 0.3s ease;
+  width: calc(100vw - var(--sidebar-width));
+  transition: margin-left 0.3s ease, width 0.3s ease;
+  overflow-y: auto;
+  box-sizing: border-box;
 }
 
 .main-content.sidebar-collapsed {
   margin-left: var(--sidebar-collapsed-width);
+  width: calc(100vw - var(--sidebar-collapsed-width));
 }
 
 /* Material Design Buttons */
@@ -308,10 +312,7 @@ p {
 
 /* Theme toggle button */
 .theme-toggle {
-  position: absolute;
-  right: 16px;
-  top: 50%;
-  transform: translateY(-50%);
+  margin-right: 8px;
 }
 
 /* Avatar/Logo styling */
@@ -319,7 +320,7 @@ p {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  margin-left: 16px;
+  margin-left: 8px;
 }
 
 /* Responsive design */
